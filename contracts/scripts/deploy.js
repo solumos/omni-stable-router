@@ -1,10 +1,12 @@
 const { ethers, upgrades } = require("hardhat");
+const hre = require("hardhat");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
 
-  const chainId = await ethers.provider.getNetwork().then(n => n.chainId);
+  const network = await ethers.provider.getNetwork();
+  const chainId = Number(network.chainId);
   console.log("Deploying to chain ID:", chainId);
 
   // Get protocol addresses based on chain
@@ -14,26 +16,35 @@ async function main() {
   console.log("\nDeploying FeeManager...");
   const FeeManager = await ethers.getContractFactory("FeeManager");
   const feeManager = await FeeManager.deploy(deployer.address);
-  await feeManager.deployed();
-  console.log("FeeManager deployed to:", feeManager.address);
+  await feeManager.waitForDeployment();
+  console.log("FeeManager deployed to:", await feeManager.getAddress());
 
   // Deploy SwapExecutor
   console.log("\nDeploying SwapExecutor...");
   const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
   const swapExecutor = await SwapExecutor.deploy();
-  await swapExecutor.deployed();
-  console.log("SwapExecutor deployed to:", swapExecutor.address);
+  await swapExecutor.waitForDeployment();
+  console.log("SwapExecutor deployed to:", await swapExecutor.getAddress());
 
-  // Deploy RouteProcessor
-  console.log("\nDeploying RouteProcessor...");
+  // Deploy RouteProcessor (UUPS upgradeable)
+  console.log("\nDeploying RouteProcessor (UUPS)...");
   const RouteProcessor = await ethers.getContractFactory("RouteProcessor");
-  const routeProcessor = await RouteProcessor.deploy(
-    protocolAddresses.cctpMessenger,
-    protocolAddresses.layerZeroEndpoint,
-    protocolAddresses.stargateRouter
+  const routeProcessor = await upgrades.deployProxy(
+    RouteProcessor,
+    [
+      deployer.address,
+      protocolAddresses.cctpTokenMessenger,
+      protocolAddresses.cctpMessageTransmitter,
+      protocolAddresses.layerZeroEndpoint,
+      protocolAddresses.stargateRouter
+    ],
+    { 
+      initializer: "initialize",
+      kind: "uups"
+    }
   );
-  await routeProcessor.deployed();
-  console.log("RouteProcessor deployed to:", routeProcessor.address);
+  await routeProcessor.waitForDeployment();
+  console.log("RouteProcessor deployed to:", await routeProcessor.getAddress());
 
   // Deploy StableRouter (UUPS Proxy)
   console.log("\nDeploying StableRouter (UUPS)...");
@@ -41,21 +52,21 @@ async function main() {
   const stableRouter = await upgrades.deployProxy(
     StableRouter,
     [
-      routeProcessor.address,
-      swapExecutor.address,
-      feeManager.address
+      await routeProcessor.getAddress(),
+      await swapExecutor.getAddress(),
+      await feeManager.getAddress()
     ],
     { 
       initializer: "initialize",
       kind: "uups"
     }
   );
-  await stableRouter.deployed();
-  console.log("StableRouter deployed to:", stableRouter.address);
+  await stableRouter.waitForDeployment();
+  console.log("StableRouter deployed to:", await stableRouter.getAddress());
 
   // Configure FeeManager
   console.log("\nConfiguring FeeManager...");
-  await feeManager.authorizeCollector(stableRouter.address, true);
+  await feeManager.authorizeCollector(await stableRouter.getAddress(), true);
   console.log("Authorized StableRouter as fee collector");
 
   // Configure token mappings on RouteProcessor
@@ -67,51 +78,57 @@ async function main() {
   await configureSwapPools(swapExecutor, chainId);
 
   console.log("\n=== Deployment Complete ===");
-  console.log("FeeManager:", feeManager.address);
-  console.log("SwapExecutor:", swapExecutor.address);
-  console.log("RouteProcessor:", routeProcessor.address);
-  console.log("StableRouter:", stableRouter.address);
+  console.log("FeeManager:", await feeManager.getAddress());
+  console.log("SwapExecutor:", await swapExecutor.getAddress());
+  console.log("RouteProcessor:", await routeProcessor.getAddress());
+  console.log("StableRouter:", await stableRouter.getAddress());
 
   // Save deployment addresses
   await saveDeploymentAddresses({
     chainId,
-    feeManager: feeManager.address,
-    swapExecutor: swapExecutor.address,
-    routeProcessor: routeProcessor.address,
-    stableRouter: stableRouter.address
+    feeManager: await feeManager.getAddress(),
+    swapExecutor: await swapExecutor.getAddress(),
+    routeProcessor: await routeProcessor.getAddress(),
+    stableRouter: await stableRouter.getAddress()
   });
 }
 
 function getProtocolAddresses(chainId) {
   const addresses = {
     1: { // Ethereum
-      cctpMessenger: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
-      layerZeroEndpoint: "0x66A71Dcef29A0fFBDBE3c6a460a3B5BC225Cd675",
+      cctpTokenMessenger: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
+      cctpMessageTransmitter: "0x0a992d191DEeC32aFe36203Ad87D7d289a738F81",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0x8731d54E9D02c286767d56ac03e8037C07e01e98"
     },
     42161: { // Arbitrum
-      cctpMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
-      layerZeroEndpoint: "0x3c2269811836af69497E5F486A85D7316753cf62",
+      cctpTokenMessenger: "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+      cctpMessageTransmitter: "0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0x53Bf833A5d6c4ddA888F69c22C88C9f356a41614"
     },
     10: { // Optimism
-      cctpMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
-      layerZeroEndpoint: "0x3c2269811836af69497E5F486A85D7316753cf62",
+      cctpTokenMessenger: "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+      cctpMessageTransmitter: "0x4D41f22c5a0e5c74090899E5a8Fb597a8842b3e8",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0xB0D502E938ed5f4df2E681fE6E419ff29631d62b"
     },
     8453: { // Base
-      cctpMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
-      layerZeroEndpoint: "0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7",
+      cctpTokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+      cctpMessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0x45f1A95A4D3f3836523F5c83673c797f4d4d263B"
     },
     137: { // Polygon
-      cctpMessenger: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
-      layerZeroEndpoint: "0x3c2269811836af69497E5F486A85D7316753cf62",
+      cctpTokenMessenger: "0x9daF8c91AEFAE50b9c0E69629D3F6Ca40cA3B3FE",
+      cctpMessageTransmitter: "0xF3be9355363857F3e001be68856A2f96b4C39Ba9",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0x45A01E4e04F14f7A4a6702c74187c5F6222033cd"
     },
     43114: { // Avalanche
-      cctpMessenger: "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982",
-      layerZeroEndpoint: "0x3c2269811836af69497E5F486A85D7316753cf62",
+      cctpTokenMessenger: "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982",
+      cctpMessageTransmitter: "0x8186359aF5F57FbB40c6b14A588d2A59C0C29880",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c", // V2 endpoint
       stargateRouter: "0x45A01E4e04F14f7A4a6702c74187c5F6222033cd"
     }
   };
@@ -121,14 +138,25 @@ function getProtocolAddresses(chainId) {
 
 async function configureTokenMappings(routeProcessor, chainId) {
   const tokenMappings = getTokenMappings(chainId);
+  const swapRouters = getSwapRouters();
   
+  // Configure tokens
   for (const [token, config] of Object.entries(tokenMappings)) {
     console.log(`Configuring ${token}...`);
-    await routeProcessor.setTokenMappings(
+    await routeProcessor.configureToken(
       config.address,
-      config.oft || ethers.constants.AddressZero,
+      config.isUSDC || false,
+      config.oft || ethers.ZeroAddress,
       config.stargatePoolId || 0
     );
+  }
+  
+  // Configure destination swap routers
+  for (const [destChainId, router] of Object.entries(swapRouters)) {
+    if (Number(destChainId) !== chainId) {
+      console.log(`Setting swap router for chain ${destChainId}: ${router}`);
+      await routeProcessor.setDestinationSwapRouter(Number(destChainId), router);
+    }
   }
 }
 
@@ -137,6 +165,7 @@ function getTokenMappings(chainId) {
     1: { // Ethereum
       USDC: {
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        isUSDC: true,
         oft: null,
         stargatePoolId: 0
       },
@@ -167,6 +196,18 @@ function getTokenMappings(chainId) {
   return mappings[chainId] || mappings[1];
 }
 
+function getSwapRouters() {
+  // These would be 1inch/0x/etc routers on each chain
+  return {
+    1: "0x1111111254EEB25477B68fb85Ed929f73A960582",     // 1inch on Ethereum
+    42161: "0x1111111254EEB25477B68fb85Ed929f73A960582",  // 1inch on Arbitrum
+    10: "0x1111111254EEB25477B68fb85Ed929f73A960582",     // 1inch on Optimism
+    8453: "0x1111111254EEB25477B68fb85Ed929f73A960582",   // 1inch on Base
+    137: "0x1111111254EEB25477B68fb85Ed929f73A960582",    // 1inch on Polygon
+    43114: "0x1111111254EEB25477B68fb85Ed929f73A960582"   // 1inch on Avalanche
+  };
+}
+
 async function configureSwapPools(swapExecutor, chainId) {
   const pools = getSwapPools(chainId);
   
@@ -190,14 +231,14 @@ function getSwapPools(chainId) {
         tokenB: "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
         pool: "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7", // Curve 3Pool
         dexType: 0, // Curve
-        poolData: ethers.utils.defaultAbiCoder.encode(["int128", "int128"], [0, 2])
+        poolData: ethers.AbiCoder.defaultAbiCoder().encode(["int128", "int128"], [0, 2])
       },
       {
         tokenA: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
         tokenB: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8", // PYUSD
         pool: "0x0000000000000000000000000000000000000000", // Uniswap V3 pool
         dexType: 1, // UniswapV3
-        poolData: ethers.utils.defaultAbiCoder.encode(["uint24"], [500]) // 0.05% fee
+        poolData: ethers.AbiCoder.defaultAbiCoder().encode(["uint24"], [500]) // 0.05% fee
       }
     ],
     // Add other chains...

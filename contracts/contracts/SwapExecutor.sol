@@ -1,46 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "./base/EmergencyWithdrawable.sol";
+import "./libraries/SharedInterfaces.sol";
+import "./libraries/ValidationLibrary.sol";
 
-interface ICurvePool {
-    function exchange(
-        int128 i,
-        int128 j,
-        uint256 dx,
-        uint256 min_dy
-    ) external returns (uint256);
-    
-    function get_dy(
-        int128 i,
-        int128 j,
-        uint256 dx
-    ) external view returns (uint256);
-}
-
-interface IUniswapV3Router {
-    struct ExactInputSingleParams {
-        address tokenIn;
-        address tokenOut;
-        uint24 fee;
-        address recipient;
-        uint256 deadline;
-        uint256 amountIn;
-        uint256 amountOutMinimum;
-        uint160 sqrtPriceLimitX96;
-    }
-    
-    function exactInputSingle(ExactInputSingleParams calldata params)
-        external
-        payable
-        returns (uint256 amountOut);
-}
-
-contract SwapExecutor is Ownable, ReentrancyGuard {
+contract SwapExecutor is EmergencyWithdrawable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
+    using ValidationLibrary for uint256;
+    using ValidationLibrary for address;
+    
+    uint256 public constant MAX_BATCH_SIZE = 10; // Prevent DoS via gas exhaustion
 
     enum DexType {
         Curve,
@@ -57,7 +31,13 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
     mapping(bytes32 => PoolConfig) public poolConfigs;
     mapping(address => bool) public whitelistedPools;
 
-    IUniswapV3Router public constant uniswapV3Router = IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    IUniswapV3Router public immutable uniswapV3Router;
+    
+    // Add configurable addresses instead of hardcoding
+    constructor(address _uniswapV3Router) EmergencyWithdrawable() {
+        ValidationLibrary.validateAddress(_uniswapV3Router);
+        uniswapV3Router = IUniswapV3Router(_uniswapV3Router);
+    }
     
     event SwapExecuted(
         address indexed tokenIn,
@@ -74,7 +54,6 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         DexType dexType
     );
 
-    constructor() Ownable(msg.sender) {}
 
     function executeSwap(
         address tokenIn,
@@ -82,10 +61,13 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         uint256 amountIn,
         uint256 minAmountOut,
         address pool,
-        bytes calldata swapData
-    ) external nonReentrant returns (uint256 amountOut) {
+        bytes calldata swapData,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused returns (uint256 amountOut) {
+        // Add deadline protection
+        ValidationLibrary.validateDeadline(deadline);
         require(whitelistedPools[pool], "Pool not whitelisted");
-        require(amountIn > 0, "Invalid amount");
+        ValidationLibrary.validateAmount(amountIn);
         
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         
@@ -107,13 +89,14 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
                 tokenOut,
                 amountIn,
                 minAmountOut,
-                swapData
+                swapData,
+                deadline
             );
         } else {
             revert("Unsupported DEX");
         }
         
-        require(amountOut >= minAmountOut, "Insufficient output");
+        ValidationLibrary.validateSlippage(amountOut, minAmountOut);
         
         IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
         
@@ -128,33 +111,97 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         uint256[] calldata amountsIn,
         uint256[] calldata minAmountsOut,
         address[] calldata pools,
-        bytes[] calldata swapData
-    ) external nonReentrant returns (uint256[] memory amountsOut) {
-        require(
-            tokensIn.length == tokensOut.length &&
-            tokensIn.length == amountsIn.length &&
-            tokensIn.length == minAmountsOut.length &&
-            tokensIn.length == pools.length &&
-            tokensIn.length == swapData.length,
-            "Array length mismatch"
-        );
+        bytes[] calldata swapData,
+        uint256 deadline
+    ) external nonReentrant whenNotPaused returns (uint256[] memory amountsOut) {
+        // Add deadline protection for batch
+        ValidationLibrary.validateDeadline(deadline);
+        
+        // Prevent DoS via unbounded loop
+        ValidationLibrary.validateArrayBounds(tokensIn.length, MAX_BATCH_SIZE);
+        
+        // Validate all arrays have same length
+        uint256[] memory lengths = new uint256[](6);
+        lengths[0] = tokensIn.length;
+        lengths[1] = tokensOut.length;
+        lengths[2] = amountsIn.length;
+        lengths[3] = minAmountsOut.length;
+        lengths[4] = pools.length;
+        lengths[5] = swapData.length;
+        ValidationLibrary.validateMultipleArrayLengths(lengths);
         
         amountsOut = new uint256[](tokensIn.length);
         
         for (uint256 i = 0; i < tokensIn.length; i++) {
-            amountsOut[i] = this.executeSwap(
+            // Fix reentrancy: use internal function instead of external call
+            amountsOut[i] = _executeSwapInternal(
                 tokensIn[i],
                 tokensOut[i],
                 amountsIn[i],
                 minAmountsOut[i],
                 pools[i],
-                swapData[i]
+                swapData[i],
+                deadline
             );
         }
         
         return amountsOut;
     }
 
+    /**
+     * @notice Internal swap execution to prevent reentrancy in batch operations
+     */
+    function _executeSwapInternal(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address pool,
+        bytes calldata swapData,
+        uint256 deadline
+    ) internal returns (uint256 amountOut) {
+        require(whitelistedPools[pool], "Pool not whitelisted");
+        ValidationLibrary.validateAmount(amountIn);
+        
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+        
+        bytes32 poolKey = keccak256(abi.encodePacked(tokenIn, tokenOut));
+        PoolConfig memory config = poolConfigs[poolKey];
+        
+        // Verify pool matches configuration
+        require(config.pool == pool, "Pool mismatch");
+        
+        if (config.dexType == DexType.Curve) {
+            amountOut = _swapOnCurve(
+                tokenIn,
+                tokenOut,
+                amountIn,
+                minAmountOut,
+                config.pool,
+                swapData
+            );
+        } else if (config.dexType == DexType.UniswapV3) {
+            amountOut = _swapOnUniswapV3(
+                tokenIn,
+                tokenOut,
+                amountIn,
+                minAmountOut,
+                swapData,
+                deadline
+            );
+        } else {
+            revert("Unsupported DEX");
+        }
+        
+        ValidationLibrary.validateSlippage(amountOut, minAmountOut);
+        
+        IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
+        
+        emit SwapExecuted(tokenIn, tokenOut, amountIn, amountOut, pool);
+        
+        return amountOut;
+    }
+    
     function _swapOnCurve(
         address tokenIn,
         address tokenOut,
@@ -163,7 +210,9 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         address pool,
         bytes calldata swapData
     ) internal returns (uint256) {
-        IERC20(tokenIn).approve(pool, amountIn);
+        // Fix approval race condition: reset to 0 first
+        IERC20(tokenIn).safeApprove(pool, 0);
+        IERC20(tokenIn).safeApprove(pool, amountIn);
         
         (int128 i, int128 j) = abi.decode(swapData, (int128, int128));
         
@@ -182,18 +231,21 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
-        bytes calldata swapData
+        bytes calldata swapData,
+        uint256 deadline
     ) internal returns (uint256) {
         uint24 fee = abi.decode(swapData, (uint24));
         
-        IERC20(tokenIn).approve(address(uniswapV3Router), amountIn);
+        // Fix approval race condition
+        IERC20(tokenIn).safeApprove(address(uniswapV3Router), 0);
+        IERC20(tokenIn).safeApprove(address(uniswapV3Router), amountIn);
         
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
             tokenOut: tokenOut,
             fee: fee,
             recipient: address(this),
-            deadline: block.timestamp,
+            deadline: deadline, // Use provided deadline instead of block.timestamp
             amountIn: amountIn,
             amountOutMinimum: minAmountOut,
             sqrtPriceLimitX96: 0
@@ -281,10 +333,14 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         whitelistedPools[pool] = false;
     }
 
-    function emergencyWithdraw(address token) external onlyOwner {
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        if (balance > 0) {
-            IERC20(token).safeTransfer(owner(), balance);
-        }
+    // Emergency withdrawal is now inherited from EmergencyWithdrawable
+    
+    // Add pause functionality
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }

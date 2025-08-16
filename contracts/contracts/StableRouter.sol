@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IRouteProcessor.sol";
 import "./interfaces/ISwapExecutor.sol";
 import "./interfaces/IFeeManager.sol";
+import "./libraries/ValidationLibrary.sol";
 
 contract StableRouter is 
     Initializable,
@@ -22,6 +23,11 @@ contract StableRouter is
     ReentrancyGuardUpgradeable
 {
     using SafeERC20 for IERC20;
+    using ValidationLibrary for uint256;
+    using ValidationLibrary for address;
+    
+    // Add storage gap for future upgrades
+    uint256[50] private __gap;
 
     // Protocol enum for better readability and type safety
     enum Protocol {
@@ -117,7 +123,8 @@ contract StableRouter is
             params.amount
         );
         
-        // Calculate and collect fees
+        // Calculate and collect fees with overflow protection
+        ValidationLibrary.validateFeeBps(PROTOCOL_FEE_BPS);
         uint256 protocolFee = (params.amount * PROTOCOL_FEE_BPS) / 10000;
         uint256 amountAfterFee = params.amount - protocolFee;
         
@@ -288,9 +295,9 @@ contract StableRouter is
     }
 
     function _validateRoute(RouteParams calldata params) internal view {
-        require(params.amount > 0, "Invalid amount");
-        require(params.recipient != address(0), "Invalid recipient");
-        require(supportedChains[params.destChainId], "Unsupported chain");
+        ValidationLibrary.validateAmount(params.amount);
+        ValidationLibrary.validateRecipient(params.recipient);
+        ValidationLibrary.validateChainId(params.destChainId, supportedChains[params.destChainId]);
         
         string memory sourceSymbol = _getTokenSymbol(params.sourceToken);
         string memory destSymbol = _getTokenSymbol(params.destToken);
@@ -334,12 +341,12 @@ contract StableRouter is
         string memory sourceSymbol = _getTokenSymbol(sourceToken);
         string memory destSymbol = _getTokenSymbol(destToken);
         
-        // ALWAYS prioritize CCTP for USDC source routes
+        // CCTP for USDC routes
         if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDC"))) {
             if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
                 return Protocol.CCTP; // Standard CCTP for USDC->USDC
             } else {
-                return Protocol.CCTP_HOOKS; // CCTP with hooks for USDC->other token
+                return Protocol.CCTP_HOOKS; // CCTP with Hooks for USDC->other token atomic swaps
             }
         }
         
@@ -446,14 +453,14 @@ contract StableRouter is
             return chainId == 1 || chainId == 10;
         }
         
-        // USDe is native on Ethereum, Arbitrum, Optimism, Base
+        // USDe is native on Ethereum, Arbitrum, Base (not on Optimism)
         if (keccak256(bytes(symbol)) == keccak256(bytes("USDe"))) {
-            return chainId == 1 || chainId == 42161 || chainId == 10 || chainId == 8453;
+            return chainId == 1 || chainId == 42161 || chainId == 8453;
         }
         
-        // crvUSD is native on Ethereum, Arbitrum, Optimism
+        // crvUSD is native on Ethereum, Arbitrum, Optimism, Base
         if (keccak256(bytes(symbol)) == keccak256(bytes("crvUSD"))) {
-            return chainId == 1 || chainId == 42161 || chainId == 10;
+            return chainId == 1 || chainId == 42161 || chainId == 10 || chainId == 8453;
         }
         
         // USDT is native on all chains except Base
@@ -555,5 +562,12 @@ contract StableRouter is
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    receive() external payable {}
+    receive() external payable {
+        // Only accept ETH from known protocol addresses
+        require(
+            msg.sender == address(routeProcessor) || 
+            msg.sender == address(swapExecutor),
+            "Unauthorized ETH sender"
+        );
+    }
 }

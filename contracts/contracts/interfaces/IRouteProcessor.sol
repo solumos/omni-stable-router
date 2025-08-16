@@ -1,8 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+/**
+ * @title IRouteProcessor
+ * @notice Interface for cross-chain routing protocol execution
+ * @dev Handles CCTP V2, LayerZero OFT/Composer, and Stargate protocols
+ */
 interface IRouteProcessor {
-    // Standard protocols
+    // Events
+    event CCTPInitiated(
+        address indexed token,
+        uint256 amount,
+        uint32 destinationDomain,
+        address recipient,
+        uint64 nonce
+    );
+    
+    event LayerZeroOFTSent(
+        address indexed token,
+        uint256 amount,
+        uint16 destChainId,
+        address recipient
+    );
+    
+    event StargateSent(
+        address indexed token,
+        uint256 amount,
+        uint16 destChainId,
+        address recipient
+    );
+    
+    event ComposerSent(
+        address indexed sourceToken,
+        address indexed destToken,
+        uint256 amount,
+        uint16 destChainId,
+        address recipient
+    );
+
+    // CCTP Functions
     function executeCCTP(
         address token,
         uint256 amount,
@@ -10,14 +46,18 @@ interface IRouteProcessor {
         address recipient
     ) external;
 
-    function executeLayerZeroOFT(
-        address token,
+    function executeCCTPWithHooks(
+        address sourceToken,
+        address destToken,
         uint256 amount,
         uint256 destChainId,
-        address recipient
-    ) external payable;
+        address recipient,
+        uint256 minAmountOut,
+        bytes calldata hookData
+    ) external;
 
-    function executeStargate(
+    // LayerZero Functions
+    function executeLayerZeroOFT(
         address token,
         uint256 amount,
         uint256 destChainId,
@@ -31,29 +71,15 @@ interface IRouteProcessor {
         uint256 destChainId,
         address recipient,
         uint256 minAmountOut,
-        bytes calldata routeData
+        bytes calldata composerData
     ) external payable;
 
-    // CCTP v2 with hooks (prioritized for USDC routes)
-    function executeCCTPWithHooks(
-        address sourceToken,
-        address destToken,
+    // Stargate Functions
+    function executeStargate(
+        address token,
         uint256 amount,
         uint256 destChainId,
-        address recipient,
-        uint256 minAmountOut,
-        bytes calldata routeData
-    ) external;
-
-    // Bridge + swap combinations
-    function executeOFTWithSwap(
-        address sourceToken,
-        address destToken,
-        uint256 amount,
-        uint256 destChainId,
-        address recipient,
-        uint256 minAmountOut,
-        bytes calldata routeData
+        address recipient
     ) external payable;
 
     function executeStargateWithSwap(
@@ -63,10 +89,10 @@ interface IRouteProcessor {
         uint256 destChainId,
         address recipient,
         uint256 minAmountOut,
-        bytes calldata routeData
+        bytes calldata swapData
     ) external payable;
 
-    // Fee estimation
+    // Fee Estimation
     function estimateLayerZeroFee(
         uint256 destChainId,
         address recipient,
@@ -81,6 +107,6 @@ interface IRouteProcessor {
     function estimateComposerFee(
         uint256 destChainId,
         address recipient,
-        bytes calldata routeData
+        bytes calldata composerData
     ) external view returns (uint256);
 }

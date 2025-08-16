@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "./base/EmergencyWithdrawable.sol";
+import "./libraries/ValidationLibrary.sol";
 
-contract FeeManager is Ownable, ReentrancyGuard {
+contract FeeManager is EmergencyWithdrawable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
+    using ValidationLibrary for uint256;
+    using ValidationLibrary for address;
 
     struct FeeInfo {
         uint256 totalCollected;
@@ -26,8 +30,8 @@ contract FeeManager is Ownable, ReentrancyGuard {
     event FeeRecipientUpdated(address oldRecipient, address newRecipient);
     event CollectorAuthorized(address collector, bool authorized);
 
-    constructor(address _feeRecipient) Ownable(msg.sender) {
-        require(_feeRecipient != address(0), "Invalid recipient");
+    constructor(address _feeRecipient) EmergencyWithdrawable() {
+        ValidationLibrary.validateAddress(_feeRecipient);
         feeRecipient = _feeRecipient;
     }
 
@@ -39,8 +43,8 @@ contract FeeManager is Ownable, ReentrancyGuard {
         _;
     }
 
-    function recordFee(address token, uint256 amount) external onlyAuthorized {
-        require(amount > 0, "Invalid amount");
+    function recordFee(address token, uint256 amount) external onlyAuthorized whenNotPaused {
+        ValidationLibrary.validateAmount(amount);
         
         // Note: Tokens should already be transferred to this contract before calling this function
         
@@ -56,7 +60,7 @@ contract FeeManager is Ownable, ReentrancyGuard {
     function withdrawFees(
         address token,
         address recipient
-    ) external onlyOwner nonReentrant {
+    ) external onlyOwner nonReentrant whenNotPaused {
         if (recipient == address(0)) {
             recipient = feeRecipient;
         }
@@ -133,7 +137,7 @@ contract FeeManager is Ownable, ReentrancyGuard {
     }
 
     function setFeeRecipient(address recipient) external onlyOwner {
-        require(recipient != address(0), "Invalid recipient");
+        ValidationLibrary.validateAddress(recipient);
         
         address oldRecipient = feeRecipient;
         feeRecipient = recipient;
@@ -150,7 +154,7 @@ contract FeeManager is Ownable, ReentrancyGuard {
         address[] calldata collectors,
         bool[] calldata authorized
     ) external onlyOwner {
-        require(collectors.length == authorized.length, "Array length mismatch");
+        ValidationLibrary.validateArrayLengths(collectors.length, authorized.length);
         
         for (uint256 i = 0; i < collectors.length; i++) {
             authorizedCollectors[collectors[i]] = authorized[i];
@@ -158,24 +162,17 @@ contract FeeManager is Ownable, ReentrancyGuard {
         }
     }
 
-    function emergencyWithdraw(address token) external onlyOwner {
-        uint256 balance;
-        
-        if (token == address(0)) {
-            // Withdraw ETH
-            balance = address(this).balance;
-            if (balance > 0) {
-                (bool success, ) = owner().call{value: balance}("");
-                require(success, "ETH transfer failed");
-            }
-        } else {
-            // Withdraw ERC20
-            balance = IERC20(token).balanceOf(address(this));
-            if (balance > 0) {
-                IERC20(token).safeTransfer(owner(), balance);
-            }
-        }
+    // Emergency withdrawal is now inherited from EmergencyWithdrawable
+    
+    // Add pause functionality
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
-    receive() external payable {}
+    // Remove unprotected receive function to prevent griefing
+    // Only accept ETH through specific functions
 }

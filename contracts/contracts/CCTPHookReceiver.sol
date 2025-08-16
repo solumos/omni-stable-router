@@ -1,31 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.22;
+pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ISwapExecutor.sol";
-
-interface IMessageHandler {
-    function handleReceiveMessage(
-        uint32 sourceDomain,
-        bytes32 sender,
-        bytes calldata messageBody
-    ) external returns (bool);
-}
-
-interface IMessageTransmitter {
-    function receiveMessage(bytes calldata message, bytes calldata signature) external returns (bool);
-}
+import "./libraries/SharedInterfaces.sol";
+import "./libraries/ValidationLibrary.sol";
+import "./base/EmergencyWithdrawable.sol";
 
 /**
  * @title CCTPHookReceiver
- * @notice Receives CCTP messages with hooks and executes swaps on destination chain
+ * @notice Receives CCTP messages with hooks and executes atomic swaps on destination chain
  * @dev This contract is deployed on each destination chain to handle CCTP v2 hooks
+ *      Swaps are atomic - either the swap succeeds or the entire transaction reverts
  */
-contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
+contract CCTPHookReceiver is IMessageHandler, EmergencyWithdrawable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using ValidationLibrary for uint256;
+    using ValidationLibrary for address;
 
     ISwapExecutor public swapExecutor;
     IMessageTransmitter public messageTransmitter;
@@ -44,13 +38,6 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         address recipient
     );
     
-    event SwapFailed(
-        uint32 indexed sourceDomain,
-        address recipient,
-        uint256 amount,
-        string reason
-    );
-    
     event AuthorizedSenderUpdated(
         uint32 domain,
         bytes32 sender,
@@ -61,7 +48,10 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         address _swapExecutor,
         address _messageTransmitter,
         address _usdc
-    ) Ownable(msg.sender) {
+    ) EmergencyWithdrawable() {
+        ValidationLibrary.validateAddress(_swapExecutor);
+        ValidationLibrary.validateAddress(_messageTransmitter);
+        ValidationLibrary.validateAddress(_usdc);
         swapExecutor = ISwapExecutor(_swapExecutor);
         messageTransmitter = IMessageTransmitter(_messageTransmitter);
         USDC = _usdc;
@@ -77,7 +67,7 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         uint32 sourceDomain,
         bytes32 sender,
         bytes calldata messageBody
-    ) external override whenNotPaused returns (bool) {
+    ) external override nonReentrant whenNotPaused returns (bool) {
         // Only callable by the CCTP MessageTransmitter
         require(msg.sender == address(messageTransmitter), "Unauthorized caller");
         
@@ -93,9 +83,14 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
             bytes memory swapData
         ) = abi.decode(messageBody, (address, uint256, address, address, bytes));
         
+        // Decode expected amount from message to validate
+        // Note: This assumes the hook data includes expected amount
         // USDC has already been minted to this contract by CCTP
         uint256 usdcBalance = IERC20(USDC).balanceOf(address(this));
         require(usdcBalance > 0, "No USDC received");
+        
+        // TODO: Add validation that received amount matches expected
+        // This would require encoding expected amount in the hook data
         
         // If destination token is USDC, just transfer
         if (destToken == USDC) {
@@ -112,7 +107,8 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         }
         
         // Execute swap from USDC to destination token
-        try this.executeSwap(
+        // No try/catch - we want atomic execution (succeed or revert)
+        uint256 amountOut = executeSwapInternal(
             USDC,
             destToken,
             usdcBalance,
@@ -120,29 +116,25 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
             swapPool,
             swapData,
             recipient
-        ) returns (uint256 amountOut) {
-            emit HookExecuted(
-                sourceDomain,
-                USDC,
-                destToken,
-                usdcBalance,
-                amountOut,
-                recipient
-            );
-            return true;
-        } catch Error(string memory reason) {
-            // Swap failed - send USDC to recipient as fallback
-            IERC20(USDC).safeTransfer(recipient, usdcBalance);
-            emit SwapFailed(sourceDomain, recipient, usdcBalance, reason);
-            return true; // Still return true to not block CCTP
-        }
+        );
+        
+        emit HookExecuted(
+            sourceDomain,
+            USDC,
+            destToken,
+            usdcBalance,
+            amountOut,
+            recipient
+        );
+        
+        return true;
     }
 
     /**
      * @notice Executes the swap from USDC to destination token
-     * @dev External function to enable try/catch
+     * @dev Internal function for atomic execution - reverts on failure
      */
-    function executeSwap(
+    function executeSwapInternal(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -150,12 +142,13 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         address swapPool,
         bytes memory swapData,
         address recipient
-    ) external returns (uint256) {
-        require(msg.sender == address(this), "Internal only");
+    ) internal returns (uint256) {
         require(supportedTokens[tokenOut], "Unsupported token");
+        ValidationLibrary.validateRecipient(recipient);
         
-        // Approve swap executor
-        IERC20(tokenIn).approve(address(swapExecutor), amountIn);
+        // Fix approval race condition
+        IERC20(tokenIn).safeApprove(address(swapExecutor), 0);
+        IERC20(tokenIn).safeApprove(address(swapExecutor), amountIn);
         
         // Execute swap via SwapExecutor
         ISwapExecutor.SwapParams memory params = ISwapExecutor.SwapParams({
@@ -168,6 +161,9 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         });
         
         uint256 amountOut = swapExecutor.executeSwap(params);
+        
+        // Verify slippage protection
+        ValidationLibrary.validateSlippage(amountOut, minAmountOut);
         
         // Transfer output tokens to recipient
         IERC20(tokenOut).safeTransfer(recipient, amountOut);
@@ -201,15 +197,7 @@ contract CCTPHookReceiver is IMessageHandler, Ownable, Pausable {
         swapExecutor = ISwapExecutor(_swapExecutor);
     }
 
-    /**
-     * @notice Emergency withdrawal of stuck tokens
-     */
-    function emergencyWithdraw(address token, address to) external onlyOwner {
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        if (balance > 0) {
-            IERC20(token).safeTransfer(to, balance);
-        }
-    }
+    // Emergency withdrawal is now inherited from EmergencyWithdrawable
 
     /**
      * @notice Pause hook execution

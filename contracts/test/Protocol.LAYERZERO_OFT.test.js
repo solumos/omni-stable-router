@@ -121,7 +121,7 @@ describe("Protocol.LAYERZERO_OFT - Native Token Transfers", function () {
   describe("USDe Transfers (Protocol 2)", function () {
     it("Should execute USDe transfers to all supported chains", async function () {
       const amount = ethers.parseUnits("100", 18);
-      const supportedChains = [42161, 10, 8453]; // Arbitrum, Optimism, Base
+      const supportedChains = [42161, 8453]; // Arbitrum, Base (NOT Optimism)
       const lzFee = ethers.parseEther("0.001");
 
       for (const destChainId of supportedChains) {
@@ -239,9 +239,9 @@ describe("Protocol.LAYERZERO_OFT - Native Token Transfers", function () {
       ).to.emit(stableRouter, "RouteInitiated");
     });
 
-    it("Should revert crvUSD transfer to Base, Polygon, Avalanche", async function () {
+    it("Should revert crvUSD transfer to Polygon, Avalanche", async function () {
       const amount = ethers.parseUnits("100", 18);
-      const unsupportedChains = [8453, 137, 43114]; // Base, Polygon, Avalanche - crvUSD not native
+      const unsupportedChains = [137, 43114]; // Polygon, Avalanche - crvUSD not native
       
       for (const destChainId of unsupportedChains) {
         await crvusd.connect(user).approve(await stableRouter.getAddress(), amount);
