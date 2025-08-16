@@ -23,6 +23,18 @@ contract StableRouter is
 {
     using SafeERC20 for IERC20;
 
+    // Protocol enum for better readability and type safety
+    enum Protocol {
+        NONE,           // 0: No protocol
+        CCTP,           // 1: Circle CCTP for USDC
+        LAYERZERO_OFT,  // 2: LayerZero OFT for PYUSD, USDe, crvUSD
+        STARGATE,       // 3: Stargate for USDT
+        COMPOSER,       // 4: LayerZero Composer for cross-token swaps
+        CCTP_HOOKS,     // 5: CCTP v2 with hooks for USDC->other
+        OFT_SWAP,       // 6: LayerZero OFT + swap on destination
+        STARGATE_SWAP   // 7: Stargate + swap on destination
+    }
+
     struct RouteParams {
         address sourceToken;
         address destToken;
@@ -37,7 +49,7 @@ contract StableRouter is
         address tokenAddress;
         uint8 decimals;
         bool isSupported;
-        uint8 protocolId; // 0: None, 1: CCTP, 2: LayerZero OFT, 3: Stargate
+        Protocol defaultProtocol; // Default protocol for this token
     }
 
     IRouteProcessor public routeProcessor;
@@ -119,7 +131,7 @@ contract StableRouter is
         }
         
         // Determine protocol and execute
-        uint8 protocol = _determineProtocol(
+        Protocol protocol = _determineProtocol(
             params.sourceToken,
             params.destToken,
             params.destChainId
@@ -137,25 +149,25 @@ contract StableRouter is
         );
         
         // Execute based on protocol
-        if (protocol == 1) {
+        if (protocol == Protocol.CCTP) {
             // Standard CCTP (USDC to USDC)
             _executeCCTP(params, amountAfterFee);
-        } else if (protocol == 2) {
+        } else if (protocol == Protocol.LAYERZERO_OFT) {
             // LayerZero OFT (same token, non-USDC)
             _executeLayerZeroOFT(params, amountAfterFee);
-        } else if (protocol == 3) {
+        } else if (protocol == Protocol.STARGATE) {
             // Stargate (USDT to USDT)
             _executeStargate(params, amountAfterFee);
-        } else if (protocol == 4) {
+        } else if (protocol == Protocol.COMPOSER) {
             // LayerZero Composer (cross-token, no USDC)
             _executeComposer(params, amountAfterFee);
-        } else if (protocol == 5) {
+        } else if (protocol == Protocol.CCTP_HOOKS) {
             // CCTP with hooks (USDC to other token)
             _executeCCTPWithHooks(params, amountAfterFee);
-        } else if (protocol == 6) {
+        } else if (protocol == Protocol.OFT_SWAP) {
             // LayerZero OFT with destination swap to USDC
             _executeOFTWithSwap(params, amountAfterFee);
-        } else if (protocol == 7) {
+        } else if (protocol == Protocol.STARGATE_SWAP) {
             // Stargate with destination swap to USDC
             _executeStargateWithSwap(params, amountAfterFee);
         } else {
@@ -308,16 +320,16 @@ contract StableRouter is
         address sourceToken,
         address destToken,
         uint256 destChainId
-    ) internal view returns (uint8) {
+    ) internal view returns (Protocol) {
         string memory sourceSymbol = _getTokenSymbol(sourceToken);
         string memory destSymbol = _getTokenSymbol(destToken);
         
         // ALWAYS prioritize CCTP for USDC source routes
         if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDC"))) {
             if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
-                return 1; // Standard CCTP for USDC->USDC
+                return Protocol.CCTP; // Standard CCTP for USDC->USDC
             } else {
-                return 5; // CCTP with hooks for USDC->other token
+                return Protocol.CCTP_HOOKS; // CCTP with hooks for USDC->other token
             }
         }
         
@@ -328,9 +340,9 @@ contract StableRouter is
             if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDe")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))) {
-                return 6; // LayerZero OFT with swap to USDC on destination
+                return Protocol.OFT_SWAP; // LayerZero OFT with swap to USDC on destination
             } else if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT"))) {
-                return 7; // Stargate with swap to USDC on destination
+                return Protocol.STARGATE_SWAP; // Stargate with swap to USDC on destination
             }
         }
         
@@ -339,14 +351,14 @@ contract StableRouter is
             if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDe")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))) {
-                return 2; // LayerZero OFT
+                return Protocol.LAYERZERO_OFT; // LayerZero OFT
             } else if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT"))) {
-                return 3; // Stargate
+                return Protocol.STARGATE; // Stargate
             }
         }
         
         // Cross-token routes (neither is USDC) use LayerZero Composer
-        return 4;
+        return Protocol.COMPOSER;
     }
 
     function _initializeTokens() internal {
@@ -355,7 +367,7 @@ contract StableRouter is
             tokenAddress: address(0), // Set per chain
             decimals: 6,
             isSupported: true,
-            protocolId: 1
+            defaultProtocol: Protocol.CCTP
         });
         
         // PYUSD
@@ -363,7 +375,7 @@ contract StableRouter is
             tokenAddress: address(0),
             decimals: 6,
             isSupported: true,
-            protocolId: 2
+            defaultProtocol: Protocol.LAYERZERO_OFT
         });
         
         // USDT
@@ -371,7 +383,7 @@ contract StableRouter is
             tokenAddress: address(0),
             decimals: 6,
             isSupported: true,
-            protocolId: 3
+            defaultProtocol: Protocol.STARGATE
         });
         
         // USDe
@@ -379,7 +391,7 @@ contract StableRouter is
             tokenAddress: address(0),
             decimals: 18,
             isSupported: true,
-            protocolId: 2
+            defaultProtocol: Protocol.LAYERZERO_OFT
         });
         
         // crvUSD
@@ -387,7 +399,7 @@ contract StableRouter is
             tokenAddress: address(0),
             decimals: 18,
             isSupported: true,
-            protocolId: 2
+            defaultProtocol: Protocol.LAYERZERO_OFT
         });
     }
 

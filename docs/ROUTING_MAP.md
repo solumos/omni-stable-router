@@ -145,7 +145,7 @@
 - **Gas**: ~250,000
 
 ### Example 3: USDC (Base) → USDe (Arbitrum)
-- **Protocol**: CCTP v2 with Hooks (Protocol 5) ✨
+- **Protocol**: CCTP v2 with Hooks (Protocol.CCTP_HOOKS) ✨
 - **Steps**: 
   1. Burn USDC on Base via CCTP
   2. Mint USDC + atomic swap to USDe on Arbitrum
@@ -168,12 +168,16 @@
 ## Protocol Priority (Updated with CCTP v2)
 
 ### Automatic Protocol Selection:
-1. **Source is USDC?** → Always use CCTP (Protocols 1 or 5)
-   - Same token: Protocol 1 (standard CCTP)
-   - Different token: Protocol 5 (CCTP with hooks) ✨
-2. **Destination is USDC?** → Bridge then swap (Protocols 6 or 7)
-3. **Same non-USDC token?** → Use native protocol (2 or 3)
-4. **Different non-USDC tokens?** → LayerZero Composer (Protocol 4)
+1. **Source is USDC?** → Always use CCTP protocols
+   - Same token: Protocol.CCTP (standard CCTP)
+   - Different token: Protocol.CCTP_HOOKS (CCTP with hooks) ✨
+2. **Destination is USDC?** → Bridge then swap
+   - From OFT tokens: Protocol.OFT_SWAP
+   - From USDT: Protocol.STARGATE_SWAP
+3. **Same non-USDC token?** → Use native protocol
+   - PYUSD/USDe/crvUSD: Protocol.LAYERZERO_OFT
+   - USDT: Protocol.STARGATE
+4. **Different non-USDC tokens?** → Protocol.COMPOSER (LayerZero Composer)
 
 ## Fee Structure
 - **Protocol Fee**: 0.1% of transfer amount

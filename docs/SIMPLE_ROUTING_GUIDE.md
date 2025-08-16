@@ -10,29 +10,29 @@ If your source token is **USDC**, we ALWAYS use Circle's CCTP because it's:
 
 ### 📊 Protocol Selection (7 Protocols Total)
 
-| Protocol # | Name | When Used | Cost | Speed |
-|------------|------|-----------|------|-------|
-| **1** | CCTP Standard | USDC → USDC (same token) | ~$0.50 | 15 sec |
-| **2** | LayerZero OFT | PYUSD/USDe/crvUSD → same token | ~$2.00 | 25 sec |
-| **3** | Stargate | USDT → USDT | ~$2.00 | 30 sec |
-| **4** | LayerZero Composer | Non-USDC cross-token swaps | ~$3.90 | 35 sec |
-| **5** | **CCTP + Hooks** ✨ | USDC → any other token | ~$0.60 | 15 sec |
-| **6** | OFT + Swap | PYUSD/USDe/crvUSD → USDC | ~$2.50 | 30 sec |
-| **7** | Stargate + Swap | USDT → USDC | ~$2.50 | 35 sec |
+| Protocol Enum | Name | When Used | Cost | Speed |
+|---------------|------|-----------|------|-------|
+| **CCTP** | CCTP Standard | USDC → USDC (same token) | ~$0.50 | 15 sec |
+| **LAYERZERO_OFT** | LayerZero OFT | PYUSD/USDe/crvUSD → same token | ~$2.00 | 25 sec |
+| **STARGATE** | Stargate | USDT → USDT | ~$2.00 | 30 sec |
+| **COMPOSER** | LayerZero Composer | Non-USDC cross-token swaps | ~$3.90 | 35 sec |
+| **CCTP_HOOKS** | **CCTP + Hooks** ✨ | USDC → any other token | ~$0.60 | 15 sec |
+| **OFT_SWAP** | OFT + Swap | PYUSD/USDe/crvUSD → USDC | ~$2.50 | 30 sec |
+| **STARGATE_SWAP** | Stargate + Swap | USDT → USDC | ~$2.50 | 35 sec |
 
 ### 🔄 Simple Examples
 
 #### Cheapest Routes (USDC Source)
-- **USDC → USDC**: Protocol 1 (CCTP) = $0.50
-- **USDC → USDe**: Protocol 5 (CCTP + Hooks) = $0.60 ✨
-- **USDC → PYUSD**: Protocol 5 (CCTP + Hooks) = $0.60 ✨
-- **USDC → USDT**: Protocol 5 (CCTP + Hooks) = $0.60 ✨
+- **USDC → USDC**: Protocol.CCTP = $0.50
+- **USDC → USDe**: Protocol.CCTP_HOOKS = $0.60 ✨
+- **USDC → PYUSD**: Protocol.CCTP_HOOKS = $0.60 ✨
+- **USDC → USDT**: Protocol.CCTP_HOOKS = $0.60 ✨
 
 #### Other Common Routes
-- **PYUSD → PYUSD**: Protocol 2 (LayerZero OFT) = $2.00
-- **USDT → USDT**: Protocol 3 (Stargate) = $2.00
-- **PYUSD → USDT**: Protocol 4 (LayerZero Composer) = $3.90
-- **USDe → USDC**: Protocol 6 (OFT + Swap) = $2.50
+- **PYUSD → PYUSD**: Protocol.LAYERZERO_OFT = $2.00
+- **USDT → USDT**: Protocol.STARGATE = $2.00
+- **PYUSD → USDT**: Protocol.COMPOSER = $3.90
+- **USDe → USDC**: Protocol.OFT_SWAP = $2.50
 
 ### 🚫 Invalid Routes (Will Revert)
 - ❌ Any token to a chain where it's not native
@@ -57,7 +57,7 @@ If your source token is **USDC**, we ALWAYS use Circle's CCTP because it's:
 
 ### 🔧 Technical Details
 
-#### Protocol 5: CCTP with Hooks (NEW!)
+#### Protocol.CCTP_HOOKS: CCTP with Hooks (NEW!)
 When USDC is the source and needs to swap to another token:
 1. Burns USDC on source chain
 2. Circle attestation (13-15 seconds)
@@ -83,13 +83,13 @@ All in one transaction, no intermediate steps needed!
 
 ```
 Is source token USDC?
-├─ YES → Use CCTP (Protocols 1 or 5)
-│   └─ Same token? → Protocol 1
-│   └─ Different token? → Protocol 5 ✨
+├─ YES → Use CCTP protocols
+│   └─ Same token? → Protocol.CCTP
+│   └─ Different token? → Protocol.CCTP_HOOKS ✨
 └─ NO → Check destination token
     ├─ Is destination USDC?
-    │   └─ YES → Use native protocol + swap (6 or 7)
-    └─ NO → Use native protocol or Composer (2, 3, or 4)
+    │   └─ YES → Use native protocol + swap (OFT_SWAP or STARGATE_SWAP)
+    └─ NO → Use native protocol or COMPOSER
 ```
 
 ### 📝 Remember
