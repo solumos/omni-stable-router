@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -26,7 +26,7 @@ contract FeeManager is Ownable, ReentrancyGuard {
     event FeeRecipientUpdated(address oldRecipient, address newRecipient);
     event CollectorAuthorized(address collector, bool authorized);
 
-    constructor(address _feeRecipient) {
+    constructor(address _feeRecipient) Ownable(msg.sender) {
         require(_feeRecipient != address(0), "Invalid recipient");
         feeRecipient = _feeRecipient;
     }
@@ -42,8 +42,7 @@ contract FeeManager is Ownable, ReentrancyGuard {
     function recordFee(address token, uint256 amount) external onlyAuthorized {
         require(amount > 0, "Invalid amount");
         
-        // Transfer token from caller to this contract
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        // Note: Tokens should already be transferred to this contract before calling this function
         
         FeeInfo storage info = feeInfo[token];
         info.totalCollected += amount;

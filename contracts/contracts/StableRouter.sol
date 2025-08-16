@@ -4,9 +4,10 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IRouteProcessor.sol";
@@ -80,7 +81,7 @@ contract StableRouter is
         address _swapExecutor,
         address _feeManager
     ) public initializer {
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         __Pausable_init();
         __ReentrancyGuard_init();
         __UUPSUpgradeable_init();
@@ -158,7 +159,7 @@ contract StableRouter is
         uint256 amount
     ) internal {
         // Approve and execute CCTP transfer
-        IERC20(params.sourceToken).safeApprove(
+        IERC20(params.sourceToken).approve(
             address(routeProcessor),
             amount
         );
@@ -176,7 +177,7 @@ contract StableRouter is
         uint256 amount
     ) internal {
         // Approve and execute LayerZero OFT transfer
-        IERC20(params.sourceToken).safeApprove(
+        IERC20(params.sourceToken).approve(
             address(routeProcessor),
             amount
         );
@@ -208,7 +209,7 @@ contract StableRouter is
         uint256 amount
     ) internal {
         // Approve and execute Stargate transfer
-        IERC20(params.sourceToken).safeApprove(
+        IERC20(params.sourceToken).approve(
             address(routeProcessor),
             amount
         );
@@ -239,7 +240,7 @@ contract StableRouter is
         uint256 amount
     ) internal {
         // For cross-token routes using LayerZero Composer
-        IERC20(params.sourceToken).safeApprove(
+        IERC20(params.sourceToken).approve(
             address(routeProcessor),
             amount
         );
@@ -274,8 +275,15 @@ contract StableRouter is
         require(params.recipient != address(0), "Invalid recipient");
         require(supportedChains[params.destChainId], "Unsupported chain");
         
-        TokenInfo memory sourceToken = tokens[_getTokenSymbol(params.sourceToken)];
-        TokenInfo memory destToken = tokens[_getTokenSymbol(params.destToken)];
+        string memory sourceSymbol = _getTokenSymbol(params.sourceToken);
+        string memory destSymbol = _getTokenSymbol(params.destToken);
+        
+        // Check if tokens are supported
+        require(bytes(sourceSymbol).length > 0, "Source token not supported");
+        require(bytes(destSymbol).length > 0, "Dest token not supported");
+        
+        TokenInfo memory sourceToken = tokens[sourceSymbol];
+        TokenInfo memory destToken = tokens[destSymbol];
         
         require(sourceToken.isSupported, "Source token not supported");
         require(destToken.isSupported, "Dest token not supported");
@@ -367,14 +375,44 @@ contract StableRouter is
 
     function _getTokenSymbol(address token) internal view returns (string memory) {
         // This would be implemented with actual token address mappings
-        // For now, returning placeholder
-        return "USDC";
+        // For testing, we'll use a simple mapping based on token name
+        try IERC20Metadata(token).symbol() returns (string memory symbol) {
+            return symbol;
+        } catch {
+            return "";
+        }
     }
 
     function _isNativeOnChain(address token, uint256 chainId) internal view returns (bool) {
         // Check if token is natively deployed on destination chain
-        // This would check against a mapping of native deployments
-        return true; // Placeholder
+        string memory symbol = _getTokenSymbol(token);
+        
+        // USDC is native on all chains
+        if (keccak256(bytes(symbol)) == keccak256(bytes("USDC"))) {
+            return true;
+        }
+        
+        // PYUSD is only native on Ethereum and Optimism
+        if (keccak256(bytes(symbol)) == keccak256(bytes("PYUSD"))) {
+            return chainId == 1 || chainId == 10;
+        }
+        
+        // USDe is native on Ethereum, Arbitrum, Optimism, Base
+        if (keccak256(bytes(symbol)) == keccak256(bytes("USDe"))) {
+            return chainId == 1 || chainId == 42161 || chainId == 10 || chainId == 8453;
+        }
+        
+        // crvUSD is native on Ethereum, Arbitrum, Optimism
+        if (keccak256(bytes(symbol)) == keccak256(bytes("crvUSD"))) {
+            return chainId == 1 || chainId == 42161 || chainId == 10;
+        }
+        
+        // USDT is native on all chains except Base
+        if (keccak256(bytes(symbol)) == keccak256(bytes("USDT"))) {
+            return chainId != 8453;
+        }
+        
+        return false;
     }
 
     function _generateRouteId(RouteParams calldata params) internal view returns (bytes32) {

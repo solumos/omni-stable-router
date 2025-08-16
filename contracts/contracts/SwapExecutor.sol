@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -74,7 +74,7 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         DexType dexType
     );
 
-    constructor() {}
+    constructor() Ownable(msg.sender) {}
 
     function executeSwap(
         address tokenIn,
@@ -163,7 +163,7 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         address pool,
         bytes calldata swapData
     ) internal returns (uint256) {
-        IERC20(tokenIn).safeApprove(pool, amountIn);
+        IERC20(tokenIn).approve(pool, amountIn);
         
         (int128 i, int128 j) = abi.decode(swapData, (int128, int128));
         
@@ -186,7 +186,7 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
     ) internal returns (uint256) {
         uint24 fee = abi.decode(swapData, (uint24));
         
-        IERC20(tokenIn).safeApprove(address(uniswapV3Router), amountIn);
+        IERC20(tokenIn).approve(address(uniswapV3Router), amountIn);
         
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
@@ -259,13 +259,17 @@ contract SwapExecutor is Ownable, ReentrancyGuard {
         );
         
         for (uint256 i = 0; i < tokenAs.length; i++) {
-            configurePool(
-                tokenAs[i],
-                tokenBs[i],
-                pools[i],
-                dexTypes[i],
-                poolDatas[i]
-            );
+            bytes32 poolKey = keccak256(abi.encodePacked(tokenAs[i], tokenBs[i]));
+            
+            poolConfigs[poolKey] = PoolConfig({
+                pool: pools[i],
+                dexType: dexTypes[i],
+                poolData: poolDatas[i]
+            });
+            
+            whitelistedPools[pools[i]] = true;
+            
+            emit PoolConfigured(tokenAs[i], tokenBs[i], pools[i], dexTypes[i]);
         }
     }
 

@@ -2,11 +2,31 @@
 pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/OFT.sol";
-import "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+// Simplified interfaces for LayerZero - actual implementations would use LayerZero contracts
+interface IOFT {
+    function send(
+        uint16 _dstChainId,
+        bytes calldata _toAddress,
+        uint256 _amount,
+        address payable _refundAddress,
+        address _zroPaymentAddress,
+        bytes calldata _adapterParams
+    ) external payable;
+}
+
+interface ILayerZeroEndpoint {
+    function send(
+        uint16 _dstChainId,
+        bytes calldata _destination,
+        bytes calldata _payload,
+        address payable _refundAddress,
+        address _zroPaymentAddress,
+        bytes calldata _adapterParams
+    ) external payable;
+}
 
 interface ITokenMessenger {
     function depositForBurn(
@@ -52,7 +72,7 @@ contract RouteProcessor is Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     ITokenMessenger public cctpMessenger;
-    ILayerZeroEndpointV2 public lzEndpoint;
+    ILayerZeroEndpoint public lzEndpoint;
     IStargateRouter public stargateRouter;
 
     mapping(uint256 => uint32) public chainIdToCCTPDomain;
@@ -93,9 +113,9 @@ contract RouteProcessor is Ownable, Pausable {
         address _cctpMessenger,
         address _lzEndpoint,
         address _stargateRouter
-    ) {
+    ) Ownable(msg.sender) {
         cctpMessenger = ITokenMessenger(_cctpMessenger);
-        lzEndpoint = ILayerZeroEndpointV2(_lzEndpoint);
+        lzEndpoint = ILayerZeroEndpoint(_lzEndpoint);
         stargateRouter = IStargateRouter(_stargateRouter);
         
         _initializeChainMappings();
@@ -110,7 +130,7 @@ contract RouteProcessor is Ownable, Pausable {
         require(amount > 0, "Invalid amount");
         
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(token).safeApprove(address(cctpMessenger), amount);
+        IERC20(token).approve(address(cctpMessenger), amount);
         
         uint32 destDomain = chainIdToCCTPDomain[destChainId];
         require(destDomain > 0, "Invalid destination domain");
@@ -140,7 +160,7 @@ contract RouteProcessor is Ownable, Pausable {
         require(oftAddress != address(0), "Token not OFT");
         
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(token).safeApprove(oftAddress, amount);
+        IERC20(token).approve(oftAddress, amount);
         
         uint16 lzChainId = chainIdToLZChainId[destChainId];
         require(lzChainId > 0, "Invalid LZ chain");
@@ -148,8 +168,7 @@ contract RouteProcessor is Ownable, Pausable {
         // Prepare OFT send
         bytes memory adapterParams = abi.encodePacked(uint16(1), uint256(200000));
         
-        OFT(oftAddress).sendFrom{value: msg.value}(
-            address(this),
+        IOFT(oftAddress).send{value: msg.value}(
             lzChainId,
             abi.encodePacked(recipient),
             amount,
@@ -171,7 +190,7 @@ contract RouteProcessor is Ownable, Pausable {
         require(msg.value > 0, "Stargate fee required");
         
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(token).safeApprove(address(stargateRouter), amount);
+        IERC20(token).approve(address(stargateRouter), amount);
         
         uint16 lzChainId = chainIdToLZChainId[destChainId];
         uint256 srcPoolId = tokenToStargatePoolId[token];
@@ -223,7 +242,7 @@ contract RouteProcessor is Ownable, Pausable {
         address oftAddress = tokenToOFT[sourceToken];
         if (oftAddress != address(0)) {
             // Use OFT with composer message
-            IERC20(sourceToken).safeApprove(oftAddress, amount);
+            IERC20(sourceToken).approve(oftAddress, amount);
             
             uint16 lzChainId = chainIdToLZChainId[destChainId];
             
@@ -236,8 +255,7 @@ contract RouteProcessor is Ownable, Pausable {
             );
             
             // Send with composer payload
-            OFT(oftAddress).sendFrom{value: msg.value}(
-                address(this),
+            IOFT(oftAddress).send{value: msg.value}(
                 lzChainId,
                 abi.encodePacked(recipient),
                 amount,
