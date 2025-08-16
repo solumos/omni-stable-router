@@ -35,6 +35,7 @@
     "hardhat": "^2.19.0",
     "hardhat-gas-reporter": "^1.0.8",
     "solidity-coverage": "^0.8.0",
+    "tsx": "^4.20.4",
     "typechain": "^8.3.0"
   },
   "keywords": [
@@ -48,5 +49,6 @@
     "payments"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module"
 }
