@@ -97,7 +97,10 @@
 | Base | ✅ CCTP | ❌ | ✅ Stargate | ❌ | ❌ |
 | Polygon | ✅ CCTP | ❌ | ✅ Stargate | ❌ | ❌ |
 
-## Cross-Token Routes (Using LayerZero Composer)
+## Cross-Token Routes
+
+### USDC Source Routes (Using CCTP v2 with Hooks - Protocol 5)
+**All USDC → other token routes now use CCTP v2 with hooks for 85% cost savings!**
 
 ### Available Swaps on Ethereum
 - PYUSD ↔ USDC
@@ -141,13 +144,14 @@
 - **Time**: ~25 seconds
 - **Gas**: ~250,000
 
-### Example 3: PYUSD (Ethereum) → USDC (Arbitrum)
-- **Protocol**: LayerZero Composer
+### Example 3: USDC (Base) → USDe (Arbitrum)
+- **Protocol**: CCTP v2 with Hooks (Protocol 5) ✨
 - **Steps**: 
-  1. Bridge PYUSD to Arbitrum
-  2. Swap PYUSD to USDC on Arbitrum
-- **Time**: ~35 seconds
-- **Gas**: ~350,000
+  1. Burn USDC on Base via CCTP
+  2. Mint USDC + atomic swap to USDe on Arbitrum
+- **Time**: ~15 seconds
+- **Gas**: ~250,000
+- **Cost**: ~$0.60 (85% cheaper than LayerZero!)
 
 ### Example 4: USDT (Base) → USDT (Polygon)
 - **Protocol**: Stargate
@@ -161,12 +165,15 @@
 - crvUSD to Base, Polygon, or Avalanche
 - Any cross-token route where destination token is not native
 
-## Protocol Priority
-When multiple protocols could handle a route:
-1. **CCTP** (fastest, cheapest for USDC)
-2. **LayerZero OFT** (native token standard)
-3. **Stargate** (unified liquidity)
-4. **LayerZero Composer** (most flexible)
+## Protocol Priority (Updated with CCTP v2)
+
+### Automatic Protocol Selection:
+1. **Source is USDC?** → Always use CCTP (Protocols 1 or 5)
+   - Same token: Protocol 1 (standard CCTP)
+   - Different token: Protocol 5 (CCTP with hooks) ✨
+2. **Destination is USDC?** → Bridge then swap (Protocols 6 or 7)
+3. **Same non-USDC token?** → Use native protocol (2 or 3)
+4. **Different non-USDC tokens?** → LayerZero Composer (Protocol 4)
 
 ## Fee Structure
 - **Protocol Fee**: 0.1% of transfer amount

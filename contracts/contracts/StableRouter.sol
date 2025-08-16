@@ -138,17 +138,26 @@ contract StableRouter is
         
         // Execute based on protocol
         if (protocol == 1) {
-            // CCTP
+            // Standard CCTP (USDC to USDC)
             _executeCCTP(params, amountAfterFee);
         } else if (protocol == 2) {
-            // LayerZero OFT
+            // LayerZero OFT (same token, non-USDC)
             _executeLayerZeroOFT(params, amountAfterFee);
         } else if (protocol == 3) {
-            // Stargate
+            // Stargate (USDT to USDT)
             _executeStargate(params, amountAfterFee);
         } else if (protocol == 4) {
-            // LayerZero Composer (cross-token)
+            // LayerZero Composer (cross-token, no USDC)
             _executeComposer(params, amountAfterFee);
+        } else if (protocol == 5) {
+            // CCTP with hooks (USDC to other token)
+            _executeCCTPWithHooks(params, amountAfterFee);
+        } else if (protocol == 6) {
+            // LayerZero OFT with destination swap to USDC
+            _executeOFTWithSwap(params, amountAfterFee);
+        } else if (protocol == 7) {
+            // Stargate with destination swap to USDC
+            _executeStargateWithSwap(params, amountAfterFee);
         } else {
             revert("Unsupported route");
         }
@@ -303,22 +312,40 @@ contract StableRouter is
         string memory sourceSymbol = _getTokenSymbol(sourceToken);
         string memory destSymbol = _getTokenSymbol(destToken);
         
-        // Same token routes
-        if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
-            if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDC"))) {
-                return 1; // CCTP
-            } else if (
-                keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
+        // ALWAYS prioritize CCTP for USDC source routes
+        if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDC"))) {
+            if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
+                return 1; // Standard CCTP for USDC->USDC
+            } else {
+                return 5; // CCTP with hooks for USDC->other token
+            }
+        }
+        
+        // If destination is USDC but source isn't, still use CCTP hooks if possible
+        if (keccak256(bytes(destSymbol)) == keccak256(bytes("USDC"))) {
+            // For non-USDC to USDC, we need to bridge first then no swap needed
+            // This would use the source token's native protocol
+            if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDe")) ||
-                keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))
-            ) {
+                keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))) {
+                return 6; // LayerZero OFT with swap to USDC on destination
+            } else if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT"))) {
+                return 7; // Stargate with swap to USDC on destination
+            }
+        }
+        
+        // Same token routes (non-USDC)
+        if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
+            if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
+                keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDe")) ||
+                keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))) {
                 return 2; // LayerZero OFT
             } else if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT"))) {
                 return 3; // Stargate
             }
         }
         
-        // Cross-token routes use Composer
+        // Cross-token routes (neither is USDC) use LayerZero Composer
         return 4;
     }
 
@@ -413,6 +440,97 @@ contract StableRouter is
         }
         
         return false;
+    }
+
+    function _executeCCTPWithHooks(
+        RouteParams calldata params,
+        uint256 amount
+    ) internal {
+        // CCTP with hooks for USDC to other token swaps
+        IERC20(params.sourceToken).approve(
+            address(routeProcessor),
+            amount
+        );
+        
+        // No additional fee needed for CCTP
+        routeProcessor.executeCCTPWithHooks(
+            params.sourceToken,
+            params.destToken,
+            amount,
+            params.destChainId,
+            params.recipient,
+            params.minAmountOut,
+            params.routeData
+        );
+    }
+
+    function _executeOFTWithSwap(
+        RouteParams calldata params,
+        uint256 amount
+    ) internal {
+        // LayerZero OFT bridge followed by swap to USDC
+        IERC20(params.sourceToken).approve(
+            address(routeProcessor),
+            amount
+        );
+        
+        uint256 lzFee = routeProcessor.estimateLayerZeroFee(
+            params.destChainId,
+            params.recipient,
+            amount
+        );
+        
+        require(msg.value >= lzFee, "Insufficient LZ fee");
+        
+        routeProcessor.executeOFTWithSwap{value: lzFee}(
+            params.sourceToken,
+            params.destToken,
+            amount,
+            params.destChainId,
+            params.recipient,
+            params.minAmountOut,
+            params.routeData
+        );
+        
+        // Refund excess fee
+        if (msg.value > lzFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - lzFee}("");
+            require(success, "Fee refund failed");
+        }
+    }
+
+    function _executeStargateWithSwap(
+        RouteParams calldata params,
+        uint256 amount
+    ) internal {
+        // Stargate bridge followed by swap to USDC
+        IERC20(params.sourceToken).approve(
+            address(routeProcessor),
+            amount
+        );
+        
+        uint256 stargateFee = routeProcessor.estimateStargateFee(
+            params.destChainId,
+            params.sourceToken
+        );
+        
+        require(msg.value >= stargateFee, "Insufficient Stargate fee");
+        
+        routeProcessor.executeStargateWithSwap{value: stargateFee}(
+            params.sourceToken,
+            params.destToken,
+            amount,
+            params.destChainId,
+            params.recipient,
+            params.minAmountOut,
+            params.routeData
+        );
+        
+        // Refund excess fee
+        if (msg.value > stargateFee) {
+            (bool success, ) = msg.sender.call{value: msg.value - stargateFee}("");
+            require(success, "Fee refund failed");
+        }
     }
 
     function _generateRouteId(RouteParams calldata params) internal view returns (bytes32) {

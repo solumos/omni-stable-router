@@ -3,9 +3,12 @@ pragma solidity ^0.8.22;
 
 contract MockRouteProcessor {
     event MockCCTPExecuted(address token, uint256 amount, uint256 destChainId, address recipient);
+    event MockCCTPWithHooksExecuted(address sourceToken, address destToken, uint256 amount, uint256 destChainId);
     event MockLayerZeroExecuted(address token, uint256 amount, uint256 destChainId, address recipient);
     event MockStargateExecuted(address token, uint256 amount, uint256 destChainId, address recipient);
     event MockComposerExecuted(address sourceToken, address destToken, uint256 amount, uint256 destChainId);
+    event MockOFTWithSwapExecuted(address sourceToken, address destToken, uint256 amount, uint256 destChainId);
+    event MockStargateWithSwapExecuted(address sourceToken, address destToken, uint256 amount, uint256 destChainId);
 
     function executeCCTP(
         address token,
@@ -14,6 +17,18 @@ contract MockRouteProcessor {
         address recipient
     ) external {
         emit MockCCTPExecuted(token, amount, destChainId, recipient);
+    }
+
+    function executeCCTPWithHooks(
+        address sourceToken,
+        address destToken,
+        uint256 amount,
+        uint256 destChainId,
+        address recipient,
+        uint256 minAmountOut,
+        bytes calldata routeData
+    ) external {
+        emit MockCCTPWithHooksExecuted(sourceToken, destToken, amount, destChainId);
     }
 
     function executeLayerZeroOFT(
@@ -44,6 +59,30 @@ contract MockRouteProcessor {
         bytes calldata routeData
     ) external payable {
         emit MockComposerExecuted(sourceToken, destToken, amount, destChainId);
+    }
+
+    function executeOFTWithSwap(
+        address sourceToken,
+        address destToken,
+        uint256 amount,
+        uint256 destChainId,
+        address recipient,
+        uint256 minAmountOut,
+        bytes calldata routeData
+    ) external payable {
+        emit MockOFTWithSwapExecuted(sourceToken, destToken, amount, destChainId);
+    }
+
+    function executeStargateWithSwap(
+        address sourceToken,
+        address destToken,
+        uint256 amount,
+        uint256 destChainId,
+        address recipient,
+        uint256 minAmountOut,
+        bytes calldata routeData
+    ) external payable {
+        emit MockStargateWithSwapExecuted(sourceToken, destToken, amount, destChainId);
     }
 
     function estimateLayerZeroFee(
