@@ -27,12 +27,11 @@ contract StableRouter is
     enum Protocol {
         NONE,           // 0: No protocol
         CCTP,           // 1: Circle CCTP for USDC
-        LAYERZERO_OFT,  // 2: LayerZero OFT for PYUSD, USDe, crvUSD
-        STARGATE,       // 3: Stargate for USDT
-        COMPOSER,       // 4: LayerZero Composer for cross-token swaps
+        LAYERZERO_OFT,  // 2: LayerZero OFT for same-token transfers
+        STARGATE,       // 3: Stargate for USDT transfers
+        LZ_COMPOSER,    // 4: LayerZero Composer with Compose hooks for any OFT cross-token swaps (including to USDC)
         CCTP_HOOKS,     // 5: CCTP v2 with hooks for USDC->other
-        OFT_SWAP,       // 6: LayerZero OFT + swap on destination
-        STARGATE_SWAP   // 7: Stargate + swap on destination
+        STARGATE_SWAP   // 6: Stargate + swap on destination
     }
 
     struct RouteParams {
@@ -158,15 +157,12 @@ contract StableRouter is
         } else if (protocol == Protocol.STARGATE) {
             // Stargate (USDT to USDT)
             _executeStargate(params, amountAfterFee);
-        } else if (protocol == Protocol.COMPOSER) {
-            // LayerZero Composer (cross-token, no USDC)
+        } else if (protocol == Protocol.LZ_COMPOSER) {
+            // LayerZero Composer with Compose hooks (cross-token OFT swaps, no USDC)
             _executeComposer(params, amountAfterFee);
         } else if (protocol == Protocol.CCTP_HOOKS) {
             // CCTP with hooks (USDC to other token)
             _executeCCTPWithHooks(params, amountAfterFee);
-        } else if (protocol == Protocol.OFT_SWAP) {
-            // LayerZero OFT with destination swap to USDC
-            _executeOFTWithSwap(params, amountAfterFee);
         } else if (protocol == Protocol.STARGATE_SWAP) {
             // Stargate with destination swap to USDC
             _executeStargateWithSwap(params, amountAfterFee);
@@ -309,11 +305,25 @@ contract StableRouter is
         require(sourceToken.isSupported, "Source token not supported");
         require(destToken.isSupported, "Dest token not supported");
         
+        // For USDT specifically, it cannot route TO Base at all (check this first)
+        if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT")) && params.destChainId == 8453) {
+            revert("USDT cannot be routed to Base");
+        }
+        
         // Validate native deployment on destination
         require(
             _isNativeOnChain(params.destToken, params.destChainId),
             "Token not native on destination"
         );
+        
+        // For same-token routes, source must also be native on destination
+        // (e.g., can't send PYUSD to Base even for same-token route)
+        if (keccak256(bytes(sourceSymbol)) == keccak256(bytes(destSymbol))) {
+            require(
+                _isNativeOnChain(params.sourceToken, params.destChainId),
+                "Source token not native on destination"
+            );
+        }
     }
 
     function _determineProtocol(
@@ -333,14 +343,13 @@ contract StableRouter is
             }
         }
         
-        // If destination is USDC but source isn't, still use CCTP hooks if possible
+        // If destination is USDC but source isn't, use appropriate bridge + swap
         if (keccak256(bytes(destSymbol)) == keccak256(bytes("USDC"))) {
-            // For non-USDC to USDC, we need to bridge first then no swap needed
-            // This would use the source token's native protocol
+            // For OFT tokens to USDC, use LayerZero Composer
             if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("PYUSD")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDe")) ||
                 keccak256(bytes(sourceSymbol)) == keccak256(bytes("crvUSD"))) {
-                return Protocol.OFT_SWAP; // LayerZero OFT with swap to USDC on destination
+                return Protocol.LZ_COMPOSER; // LayerZero Composer for OFT->USDC swaps
             } else if (keccak256(bytes(sourceSymbol)) == keccak256(bytes("USDT"))) {
                 return Protocol.STARGATE_SWAP; // Stargate with swap to USDC on destination
             }
@@ -357,8 +366,9 @@ contract StableRouter is
             }
         }
         
-        // Cross-token routes (neither is USDC) use LayerZero Composer
-        return Protocol.COMPOSER;
+        // Cross-token routes use LayerZero Composer with Compose hooks
+        // This includes OFT->OFT cross-token swaps (e.g., PYUSD->USDT)
+        return Protocol.LZ_COMPOSER;
     }
 
     function _initializeTokens() internal {
@@ -474,41 +484,6 @@ contract StableRouter is
             params.minAmountOut,
             params.routeData
         );
-    }
-
-    function _executeOFTWithSwap(
-        RouteParams calldata params,
-        uint256 amount
-    ) internal {
-        // LayerZero OFT bridge followed by swap to USDC
-        IERC20(params.sourceToken).approve(
-            address(routeProcessor),
-            amount
-        );
-        
-        uint256 lzFee = routeProcessor.estimateLayerZeroFee(
-            params.destChainId,
-            params.recipient,
-            amount
-        );
-        
-        require(msg.value >= lzFee, "Insufficient LZ fee");
-        
-        routeProcessor.executeOFTWithSwap{value: lzFee}(
-            params.sourceToken,
-            params.destToken,
-            amount,
-            params.destChainId,
-            params.recipient,
-            params.minAmountOut,
-            params.routeData
-        );
-        
-        // Refund excess fee
-        if (msg.value > lzFee) {
-            (bool success, ) = msg.sender.call{value: msg.value - lzFee}("");
-            require(success, "Fee refund failed");
-        }
     }
 
     function _executeStargateWithSwap(

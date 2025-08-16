@@ -128,7 +128,7 @@ describe("Protocol.STARGATE - USDT Transfers", function () {
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: stargateFee })
-      ).to.be.revertedWith("Token not native on destination");
+      ).to.be.revertedWith("USDT cannot be routed to Base");
     });
   });
 
@@ -302,8 +302,6 @@ describe("Protocol.STARGATE - USDT Transfers", function () {
   describe("Stargate Liquidity Considerations", function () {
     it("Should handle slippage settings for USDT", async function () {
       const amount = ethers.parseUnits("10000", 6); // Large amount
-      
-      await usdt.connect(user).approve(await stableRouter.getAddress(), amount);
 
       // Test different slippage tolerances
       const slippageSettings = [
@@ -313,6 +311,10 @@ describe("Protocol.STARGATE - USDT Transfers", function () {
       ];
 
       for (const { minOut, shouldSucceed } of slippageSettings) {
+        // Mint and approve for each iteration
+        await usdt.mint(user.address, amount);
+        await usdt.connect(user).approve(await stableRouter.getAddress(), amount);
+        
         const routeParams = {
           sourceToken: await usdt.getAddress(),
           destToken: await usdt.getAddress(),

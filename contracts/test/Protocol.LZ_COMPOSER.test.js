@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
 
-describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
+describe("Protocol.LZ_COMPOSER - LayerZero Composer with Compose Hooks", function () {
   let stableRouter;
   let routeProcessor;
   let swapExecutor;
@@ -66,11 +66,11 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
     await crvusd.mint(user.address, ethers.parseUnits("10000", 18));
   });
 
-  describe("PYUSD to USDC Routes (Protocol 6)", function () {
-    it("Should execute PYUSD to USDC via OFT + swap", async function () {
+  describe("PYUSD to USDC Routes (LZ_COMPOSER)", function () {
+    it("Should execute PYUSD to USDC via LayerZero Composer", async function () {
       const amount = ethers.parseUnits("100", 6);
       const destChainId = 42161; // Arbitrum
-      const lzFee = ethers.parseEther("0.0015"); // Higher fee for swap
+      const lzFee = ethers.parseEther("0.002"); // Composer fee
 
       await pyusd.connect(user).approve(await stableRouter.getAddress(), amount);
 
@@ -109,7 +109,7 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
         { chainId: 10, name: "Optimism" },
         // Note: PYUSD not on other chains
       ];
-      const lzFee = ethers.parseEther("0.0015");
+      const lzFee = ethers.parseEther("0.002");
 
       for (const { chainId, name } of destinations) {
         if (chainId === 1) continue; // Skip same-chain
@@ -136,11 +136,11 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
     });
   });
 
-  describe("USDe to USDC Routes (Protocol 6)", function () {
+  describe("USDe to USDC Routes (LZ_COMPOSER)", function () {
     it("Should execute USDe to USDC with decimal conversion", async function () {
       const amount = ethers.parseUnits("100", 18); // 18 decimals
       const destChainId = 8453; // Base
-      const lzFee = ethers.parseEther("0.0015");
+      const lzFee = ethers.parseEther("0.002");
 
       await usde.connect(user).approve(await stableRouter.getAddress(), amount);
 
@@ -199,17 +199,17 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
         };
 
         await expect(
-          stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0015") })
+          stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") })
         ).to.emit(stableRouter, "RouteInitiated");
       }
     });
   });
 
-  describe("crvUSD to USDC Routes (Protocol 6)", function () {
-    it("Should execute crvUSD to USDC via OFT + swap", async function () {
+  describe("crvUSD to USDC Routes (LZ_COMPOSER)", function () {
+    it("Should execute crvUSD to USDC via LayerZero Composer", async function () {
       const amount = ethers.parseUnits("1000", 18);
       const destChainId = 10; // Optimism
-      const lzFee = ethers.parseEther("0.0015");
+      const lzFee = ethers.parseEther("0.002");
 
       await crvusd.connect(user).approve(await stableRouter.getAddress(), amount);
 
@@ -234,7 +234,7 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
     it("Should handle crvUSD to USDC on supported chains only", async function () {
       const amount = ethers.parseUnits("100", 18);
       const supportedChains = [42161, 10]; // Arbitrum, Optimism (where crvUSD exists)
-      const lzFee = ethers.parseEther("0.0015");
+      const lzFee = ethers.parseEther("0.002");
 
       for (const destChainId of supportedChains) {
         await crvusd.connect(user).approve(await stableRouter.getAddress(), amount);
@@ -259,8 +259,8 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
     });
   });
 
-  describe("Protocol Selection for OFT_SWAP", function () {
-    it("Should select Protocol.OFT_SWAP when destination is USDC from OFT tokens", async function () {
+  describe("Protocol Selection for LZ_COMPOSER", function () {
+    it("Should select Protocol.LZ_COMPOSER when destination is USDC from OFT tokens", async function () {
       const tokens = [
         { token: pyusd, amount: ethers.parseUnits("100", 6), name: "PYUSD" },
         { token: usde, amount: ethers.parseUnits("100", 18), name: "USDe" },
@@ -283,15 +283,15 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
           )
         };
 
-        // Should use Protocol 6 (OFT_SWAP)
+        // Should use Protocol 4 (LZ_COMPOSER)
         await expect(
-          stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0015") })
+          stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") })
         ).to.emit(stableRouter, "RouteInitiated");
       }
     });
   });
 
-  describe("Fee Handling for OFT + Swap", function () {
+  describe("Fee Handling for LayerZero Composer", function () {
     it("Should handle protocol fees and swap fees correctly", async function () {
       const amount = ethers.parseUnits("1000", 6);
       
@@ -312,7 +312,7 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
 
       const feesBefore = await feeManager.getTotalFees(await pyusd.getAddress());
       
-      await stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0015") });
+      await stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") });
       
       const feesAfter = await feeManager.getTotalFees(await pyusd.getAddress());
       const protocolFee = amount * 10n / 10000n; // 0.1%
@@ -337,18 +337,18 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
 
       // Should fail without sufficient fee (swap requires more gas)
       await expect(
-        stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0005") })
-      ).to.be.revertedWith("Insufficient LZ fee");
+        stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.001") })
+      ).to.be.revertedWith("Insufficient Composer fee");
 
       // Should succeed with proper fee
       await expect(
-        stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0015") })
+        stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") })
       ).to.emit(stableRouter, "RouteInitiated");
     });
   });
 
-  describe("Gas Optimization for OFT + Swap", function () {
-    it("Should use reasonable gas for OFT + swap operations", async function () {
+  describe("Gas Optimization for LayerZero Composer", function () {
+    it("Should use reasonable gas for LayerZero Composer operations", async function () {
       const amount = ethers.parseUnits("100", 6);
       
       await pyusd.connect(user).approve(await stableRouter.getAddress(), amount);
@@ -366,11 +366,103 @@ describe("Protocol.OFT_SWAP - OFT Bridge + Destination Swap", function () {
         )
       };
 
-      const tx = await stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.0015") });
+      const tx = await stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") });
       const receipt = await tx.wait();
 
-      // OFT + swap should use less than 400k gas
+      // LayerZero Composer should use less than 400k gas
       expect(receipt.gasUsed).to.be.lt(400000);
+    });
+  });
+
+  describe("Cross-Token OFT Swaps (Non-USDC)", function () {
+    let usdt;
+
+    beforeEach(async function () {
+      // Add USDT for cross-token tests
+      const MockToken = await ethers.getContractFactory("MockERC20");
+      usdt = await MockToken.deploy("Tether USD", "USDT", 6);
+      await usdt.waitForDeployment();
+    });
+
+    it("Should execute PYUSD to USDT via LayerZero Composer", async function () {
+      const amount = ethers.parseUnits("100", 6);
+      const destChainId = 42161; // Arbitrum
+      const composerFee = ethers.parseEther("0.002");
+
+      await pyusd.connect(user).approve(await stableRouter.getAddress(), amount);
+
+      const routeParams = {
+        sourceToken: await pyusd.getAddress(),
+        destToken: await usdt.getAddress(),
+        amount: amount,
+        destChainId: destChainId,
+        recipient: recipient.address,
+        minAmountOut: ethers.parseUnits("95", 6), // Expect ~95 USDT after fees
+        routeData: ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "uint24", "uint256"],
+          [await swapExecutor.getAddress(), 500, ethers.parseUnits("95", 6)]
+        )
+      };
+
+      await expect(
+        stableRouter.connect(user).executeRoute(routeParams, { value: composerFee })
+      ).to.emit(stableRouter, "RouteInitiated");
+    });
+
+    it("Should execute USDe to PYUSD via LayerZero Composer", async function () {
+      const amount = ethers.parseUnits("100", 18); // USDe has 18 decimals
+      const destChainId = 10; // Optimism (where PYUSD is native)
+      const composerFee = ethers.parseEther("0.002");
+
+      await usde.connect(user).approve(await stableRouter.getAddress(), amount);
+
+      const routeParams = {
+        sourceToken: await usde.getAddress(),
+        destToken: await pyusd.getAddress(),
+        amount: amount,
+        destChainId: destChainId,
+        recipient: recipient.address,
+        minAmountOut: ethers.parseUnits("95", 6), // Expect ~95 PYUSD
+        routeData: ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "uint24", "uint256"],
+          [await swapExecutor.getAddress(), 500, ethers.parseUnits("95", 6)]
+        )
+      };
+
+      await expect(
+        stableRouter.connect(user).executeRoute(routeParams, { value: composerFee })
+      ).to.emit(stableRouter, "RouteInitiated");
+    });
+
+    it("Should select Protocol.LZ_COMPOSER for all OFT cross-token routes", async function () {
+      const testCases = [
+        { source: pyusd, dest: usdc, destChain: 10, name: "PYUSD->USDC (Optimism)" }, // PYUSD native on Optimism
+        { source: usde, dest: usdc, destChain: 42161, name: "USDe->USDC (Arbitrum)" }, // USDe native on Arbitrum
+        { source: crvusd, dest: usdc, destChain: 42161, name: "crvUSD->USDC (Arbitrum)" }, // crvUSD native on Arbitrum
+      ];
+
+      for (const { source, dest, destChain, name } of testCases) {
+        const amount = source === usde || source === crvusd 
+          ? ethers.parseUnits("100", 18) 
+          : ethers.parseUnits("100", 6);
+
+        await source.connect(user).approve(await stableRouter.getAddress(), amount);
+
+        const routeParams = {
+          sourceToken: await source.getAddress(),
+          destToken: await dest.getAddress(),
+          amount: amount,
+          destChainId: destChain,
+          recipient: recipient.address,
+          minAmountOut: ethers.parseUnits("90", dest === usde || dest === crvusd ? 18 : 6),
+          routeData: "0x"
+        };
+
+        // All should use Protocol.LZ_COMPOSER
+        await expect(
+          stableRouter.connect(user).executeRoute(routeParams, { value: ethers.parseEther("0.002") })
+        ).to.emit(stableRouter, "RouteInitiated");
+      }
     });
   });
 });

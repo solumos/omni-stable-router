@@ -15,9 +15,8 @@ If your source token is **USDC**, we ALWAYS use Circle's CCTP because it's:
 | **CCTP** | CCTP Standard | USDC → USDC (same token) | ~$0.50 | 15 sec |
 | **LAYERZERO_OFT** | LayerZero OFT | PYUSD/USDe/crvUSD → same token | ~$2.00 | 25 sec |
 | **STARGATE** | Stargate | USDT → USDT | ~$2.00 | 30 sec |
-| **COMPOSER** | LayerZero Composer | Non-USDC cross-token swaps | ~$3.90 | 35 sec |
+| **LZ_COMPOSER** | LayerZero Composer | All OFT cross-token swaps (including to USDC) | ~$2.50-3.90 | 30-35 sec |
 | **CCTP_HOOKS** | **CCTP + Hooks** ✨ | USDC → any other token | ~$0.60 | 15 sec |
-| **OFT_SWAP** | OFT + Swap | PYUSD/USDe/crvUSD → USDC | ~$2.50 | 30 sec |
 | **STARGATE_SWAP** | Stargate + Swap | USDT → USDC | ~$2.50 | 35 sec |
 
 ### 🔄 Simple Examples
@@ -31,8 +30,9 @@ If your source token is **USDC**, we ALWAYS use Circle's CCTP because it's:
 #### Other Common Routes
 - **PYUSD → PYUSD**: Protocol.LAYERZERO_OFT = $2.00
 - **USDT → USDT**: Protocol.STARGATE = $2.00
-- **PYUSD → USDT**: Protocol.COMPOSER = $3.90
-- **USDe → USDC**: Protocol.OFT_SWAP = $2.50
+- **PYUSD → USDT**: Protocol.LZ_COMPOSER = $3.90
+- **USDe → USDC**: Protocol.LZ_COMPOSER = $2.50
+- **PYUSD → USDC**: Protocol.LZ_COMPOSER = $2.50
 
 ### 🚫 Invalid Routes (Will Revert)
 - ❌ Any token to a chain where it's not native
@@ -86,10 +86,10 @@ Is source token USDC?
 ├─ YES → Use CCTP protocols
 │   └─ Same token? → Protocol.CCTP
 │   └─ Different token? → Protocol.CCTP_HOOKS ✨
-└─ NO → Check destination token
-    ├─ Is destination USDC?
-    │   └─ YES → Use native protocol + swap (OFT_SWAP or STARGATE_SWAP)
-    └─ NO → Use native protocol or COMPOSER
+└─ NO → Check token combination
+    ├─ Same token? → Use native protocol (LAYERZERO_OFT or STARGATE)
+    └─ Different tokens? → Use LZ_COMPOSER (for all OFT cross-token swaps)
+        └─ Exception: USDT→USDC uses STARGATE_SWAP
 ```
 
 ### 📝 Remember

@@ -171,13 +171,13 @@
 1. **Source is USDC?** → Always use CCTP protocols
    - Same token: Protocol.CCTP (standard CCTP)
    - Different token: Protocol.CCTP_HOOKS (CCTP with hooks) ✨
-2. **Destination is USDC?** → Bridge then swap
-   - From OFT tokens: Protocol.OFT_SWAP
-   - From USDT: Protocol.STARGATE_SWAP
-3. **Same non-USDC token?** → Use native protocol
+2. **Same non-USDC token?** → Use native protocol
    - PYUSD/USDe/crvUSD: Protocol.LAYERZERO_OFT
    - USDT: Protocol.STARGATE
-4. **Different non-USDC tokens?** → Protocol.COMPOSER (LayerZero Composer)
+3. **Cross-token routes (non-USDC source)?** → Use appropriate composer
+   - OFT tokens (PYUSD/USDe/crvUSD) to any: Protocol.LZ_COMPOSER
+   - USDT to USDC: Protocol.STARGATE_SWAP
+   - USDT to other: Protocol.LZ_COMPOSER
 
 ## Fee Structure
 - **Protocol Fee**: 0.1% of transfer amount

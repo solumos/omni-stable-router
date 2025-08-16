@@ -12,7 +12,7 @@ enum Protocol {
     CCTP,           // 1: Circle CCTP for USDC same-token transfers
     LAYERZERO_OFT,  // 2: LayerZero OFT for PYUSD, USDe, crvUSD
     STARGATE,       // 3: Stargate for USDT transfers
-    COMPOSER,       // 4: LayerZero Composer for cross-token swaps
+    LZ_COMPOSER,    // 4: LayerZero Composer with Compose hooks for OFT cross-token swaps
     CCTP_HOOKS,     // 5: CCTP v2 with hooks for USDC to other tokens
     OFT_SWAP,       // 6: LayerZero OFT + destination swap
     STARGATE_SWAP   // 7: Stargate + destination swap
@@ -94,7 +94,7 @@ expect(protocol).to.equal(5); // Protocol.CCTP_HOOKS = 5
    - PYUSD/USDe/crvUSD: `Protocol.LAYERZERO_OFT`
    - USDT: `Protocol.STARGATE`
 
-4. **Different non-USDC tokens** → `Protocol.COMPOSER`
+4. **Different non-USDC tokens** → `Protocol.LZ_COMPOSER`
 
 ## Migration Notes
 

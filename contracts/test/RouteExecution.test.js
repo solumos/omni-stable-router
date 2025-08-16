@@ -319,7 +319,7 @@ describe("Route Execution - Comprehensive Tests", function () {
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: stargateFee })
-      ).to.be.revertedWith("Token not native on destination");
+      ).to.be.revertedWith("USDT cannot be routed to Base");
     });
 
     it("Should handle USDT transfers to all supported chains", async function () {
