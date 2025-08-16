@@ -146,9 +146,8 @@ contract CCTPHookReceiver is IMessageHandler, EmergencyWithdrawable, Pausable, R
         require(supportedTokens[tokenOut], "Unsupported token");
         ValidationLibrary.validateRecipient(recipient);
         
-        // Fix approval race condition
-        IERC20(tokenIn).safeApprove(address(swapExecutor), 0);
-        IERC20(tokenIn).safeApprove(address(swapExecutor), amountIn);
+        // Use safeIncreaseAllowance instead of safeApprove to avoid race conditions
+        IERC20(tokenIn).safeIncreaseAllowance(address(swapExecutor), amountIn);
         
         // Execute swap via SwapExecutor
         ISwapExecutor.SwapParams memory params = ISwapExecutor.SwapParams({

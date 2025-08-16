@@ -37,7 +37,7 @@ describe("USDC (Base) to USDe (Arbitrum) Route - CCTP v2 with Hooks", function (
     await feeManager.waitForDeployment();
 
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
-    swapExecutor = await SwapExecutor.deploy();
+    swapExecutor = await SwapExecutor.deploy("0x0000000000000000000000000000000000000001");
     await swapExecutor.waitForDeployment();
 
     // Deploy enhanced RouteProcessor with CCTP v2 hooks support
@@ -363,7 +363,7 @@ describe("USDC (Base) to USDe (Arbitrum) Route - CCTP v2 with Hooks", function (
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: 0 })
-      ).to.be.revertedWith("Unsupported chain");
+      ).to.be.revertedWith("VL: Unsupported chain");
     });
   });
 

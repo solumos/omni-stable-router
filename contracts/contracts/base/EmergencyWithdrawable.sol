@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @dev Inherit this to add consistent emergency functions across all contracts
  */
 abstract contract EmergencyWithdrawable is Ownable {
+    constructor() Ownable(msg.sender) {}
     using SafeERC20 for IERC20;
     
     event EmergencyWithdrawToken(address indexed token, uint256 amount, address indexed to);

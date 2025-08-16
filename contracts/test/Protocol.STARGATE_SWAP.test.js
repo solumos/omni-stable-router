@@ -28,7 +28,7 @@ describe("Protocol.STARGATE_SWAP - Stargate Bridge + Destination Swap", function
     await feeManager.waitForDeployment();
 
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
-    swapExecutor = await SwapExecutor.deploy();
+    swapExecutor = await SwapExecutor.deploy("0x0000000000000000000000000000000000000001");
     await swapExecutor.waitForDeployment();
 
     const MockRouteProcessor = await ethers.getContractFactory("MockRouteProcessor");

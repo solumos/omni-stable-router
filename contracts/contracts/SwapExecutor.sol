@@ -210,9 +210,8 @@ contract SwapExecutor is EmergencyWithdrawable, ReentrancyGuard, Pausable {
         address pool,
         bytes calldata swapData
     ) internal returns (uint256) {
-        // Fix approval race condition: reset to 0 first
-        IERC20(tokenIn).safeApprove(pool, 0);
-        IERC20(tokenIn).safeApprove(pool, amountIn);
+        // Use safeIncreaseAllowance to avoid race conditions
+        IERC20(tokenIn).safeIncreaseAllowance(pool, amountIn);
         
         (int128 i, int128 j) = abi.decode(swapData, (int128, int128));
         
@@ -236,9 +235,8 @@ contract SwapExecutor is EmergencyWithdrawable, ReentrancyGuard, Pausable {
     ) internal returns (uint256) {
         uint24 fee = abi.decode(swapData, (uint24));
         
-        // Fix approval race condition
-        IERC20(tokenIn).safeApprove(address(uniswapV3Router), 0);
-        IERC20(tokenIn).safeApprove(address(uniswapV3Router), amountIn);
+        // Use safeIncreaseAllowance to avoid race conditions
+        IERC20(tokenIn).safeIncreaseAllowance(address(uniswapV3Router), amountIn);
         
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,

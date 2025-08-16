@@ -17,6 +17,28 @@ module.exports = {
     hardhat: {
       chainId: 31337,
     },
+    // Testnets
+    sepolia: {
+      url: process.env.SEPOLIA_RPC || "https://rpc.sepolia.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 11155111,
+    },
+    arbitrumSepolia: {
+      url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 421614,
+    },
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 84532,
+    },
+    avalancheFuji: {
+      url: process.env.FUJI_RPC || "https://api.avax-test.network/ext/bc/C/rpc",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 43113,
+    },
+    // Mainnets
     ethereum: {
       url: process.env.ETHEREUM_RPC || "https://eth.llamarpc.com",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -50,12 +72,18 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
+      // Mainnets
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       arbitrumOne: process.env.ARBISCAN_API_KEY || "",
       optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || "",
       base: process.env.BASESCAN_API_KEY || "",
       polygon: process.env.POLYGONSCAN_API_KEY || "",
       avalanche: process.env.SNOWTRACE_API_KEY || "",
+      // Testnets (using same API keys as mainnets)
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+      arbitrumSepolia: process.env.ARBISCAN_API_KEY || "",
+      baseSepolia: process.env.BASESCAN_API_KEY || "",
+      avalancheFuji: process.env.SNOWTRACE_API_KEY || "",
     },
   },
   gasReporter: {

@@ -27,9 +27,11 @@ describe("StableRouter", function () {
     feeManager = await FeeManager.deploy(owner.address);
     await feeManager.waitForDeployment();
 
-    // Deploy SwapExecutor
+    // Deploy SwapExecutor with mock uniswap router
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
-    swapExecutor = await SwapExecutor.deploy();
+    // Use a mock address for uniswapV3Router in tests
+    const mockUniswapRouter = "0x0000000000000000000000000000000000000001";
+    swapExecutor = await SwapExecutor.deploy(mockUniswapRouter);
     await swapExecutor.waitForDeployment();
 
     // Deploy mock RouteProcessor
@@ -146,7 +148,7 @@ describe("StableRouter", function () {
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: 0 })
-      ).to.be.revertedWith("Unsupported chain");
+      ).to.be.revertedWith("VL: Unsupported chain");
     });
 
     it("Should revert on zero amount", async function () {
@@ -162,7 +164,7 @@ describe("StableRouter", function () {
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: 0 })
-      ).to.be.revertedWith("Invalid amount");
+      ).to.be.revertedWith("VL: Invalid amount");
     });
   });
 

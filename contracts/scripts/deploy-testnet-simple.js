@@ -36,7 +36,7 @@ const TESTNET_CONFIG = {
 };
 
 async function main() {
-  console.log("🚀 Starting Testnet Deployment...\n");
+  console.log("🚀 Starting Simple Testnet Deployment (No Multi-sig)...\n");
   
   const network = hre.network.name;
   const config = TESTNET_CONFIG[network];
@@ -50,14 +50,6 @@ async function main() {
   
   const [deployer] = await ethers.getSigners();
   
-  // Use additional signers if available, otherwise use deployer for all roles (testnet only!)
-  const signers = await ethers.getSigners();
-  const proposer1 = signers[1] || deployer;
-  const proposer2 = signers[2] || deployer;
-  const proposer3 = signers[3] || deployer;
-  const executor1 = signers[4] || deployer;
-  const executor2 = signers[5] || deployer;
-  
   console.log("👤 Deployer address:", deployer.address);
   console.log("💰 Deployer balance:", ethers.utils.formatEther(await deployer.getBalance()), "ETH\n");
   
@@ -65,37 +57,24 @@ async function main() {
   const deployedContracts = {};
   
   try {
-    // ============ 1. Deploy TimelockMultisig ============
-    console.log("📦 1. Deploying TimelockMultisig...");
-    const TimelockMultisig = await ethers.getContractFactory("TimelockMultisig");
-    const timelock = await TimelockMultisig.deploy(
-      2 * 24 * 60 * 60, // 2 days for testnet
-      [proposer1.address, proposer2.address, proposer3.address],
-      [executor1.address, executor2.address],
-      ethers.constants.AddressZero // Renounce admin after setup
-    );
-    await timelock.deployed();
-    deployedContracts.timelock = timelock.address;
-    console.log("✅ TimelockMultisig deployed to:", timelock.address);
-    
-    // ============ 2. Deploy SwapExecutor ============
-    console.log("\n📦 2. Deploying SwapExecutor...");
+    // ============ 1. Deploy SwapExecutor ============
+    console.log("📦 1. Deploying SwapExecutor...");
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
     const swapExecutor = await SwapExecutor.deploy(config.contracts.uniswapV3Router);
     await swapExecutor.deployed();
     deployedContracts.swapExecutor = swapExecutor.address;
     console.log("✅ SwapExecutor deployed to:", swapExecutor.address);
     
-    // ============ 3. Deploy FeeManager ============
-    console.log("\n📦 3. Deploying FeeManager...");
+    // ============ 2. Deploy FeeManager ============
+    console.log("\n📦 2. Deploying FeeManager...");
     const FeeManager = await ethers.getContractFactory("FeeManager");
-    const feeManager = await FeeManager.deploy(deployer.address); // Use deployer as initial fee recipient
+    const feeManager = await FeeManager.deploy(deployer.address);
     await feeManager.deployed();
     deployedContracts.feeManager = feeManager.address;
     console.log("✅ FeeManager deployed to:", feeManager.address);
     
-    // ============ 4. Deploy CCTPHookReceiver ============
-    console.log("\n📦 4. Deploying CCTPHookReceiver...");
+    // ============ 3. Deploy CCTPHookReceiver ============
+    console.log("\n📦 3. Deploying CCTPHookReceiver...");
     const CCTPHookReceiver = await ethers.getContractFactory("CCTPHookReceiver");
     const hookReceiver = await CCTPHookReceiver.deploy(
       swapExecutor.address,
@@ -106,13 +85,13 @@ async function main() {
     deployedContracts.hookReceiver = hookReceiver.address;
     console.log("✅ CCTPHookReceiver deployed to:", hookReceiver.address);
     
-    // ============ 5. Deploy RouteProcessor (UUPS Proxy) ============
-    console.log("\n📦 5. Deploying RouteProcessor (UUPS Proxy)...");
+    // ============ 4. Deploy RouteProcessor (UUPS Proxy) ============
+    console.log("\n📦 4. Deploying RouteProcessor (UUPS Proxy)...");
     const RouteProcessor = await ethers.getContractFactory("RouteProcessor");
     const routeProcessor = await upgrades.deployProxy(
       RouteProcessor,
       [
-        deployer.address, // Initial owner (will transfer to timelock)
+        deployer.address, // Owner - just the deployer
         config.contracts.cctpTokenMessenger,
         config.contracts.cctpMessageTransmitter,
         config.contracts.layerZeroEndpoint,
@@ -127,8 +106,8 @@ async function main() {
     deployedContracts.routeProcessor = routeProcessor.address;
     console.log("✅ RouteProcessor deployed to:", routeProcessor.address);
     
-    // ============ 6. Deploy StableRouter (UUPS Proxy) ============
-    console.log("\n📦 6. Deploying StableRouter (UUPS Proxy)...");
+    // ============ 5. Deploy StableRouter (UUPS Proxy) ============
+    console.log("\n📦 5. Deploying StableRouter (UUPS Proxy)...");
     const StableRouter = await ethers.getContractFactory("StableRouter");
     const stableRouter = await upgrades.deployProxy(
       StableRouter,
@@ -146,69 +125,56 @@ async function main() {
     deployedContracts.stableRouter = stableRouter.address;
     console.log("✅ StableRouter deployed to:", stableRouter.address);
     
-    // ============ 7. Configure Access Controls ============
-    console.log("\n⚙️  7. Configuring Access Controls...");
+    // ============ 6. Configure Access Controls ============
+    console.log("\n⚙️  6. Configuring Access Controls...");
     
     // Authorize StableRouter to record fees
-    await feeManager.authorizeCollector(stableRouter.address, true);
+    const tx1 = await feeManager.authorizeCollector(stableRouter.address, true);
+    await tx1.wait();
     console.log("✅ Authorized StableRouter as fee collector");
     
     // Configure CCTPHookReceiver authorized senders
-    await hookReceiver.setAuthorizedSender(
+    const tx2 = await hookReceiver.setAuthorizedSender(
       config.cctpDomain,
       ethers.utils.hexZeroPad(routeProcessor.address, 32),
       true
     );
+    await tx2.wait();
     console.log("✅ Authorized RouteProcessor as CCTP sender");
     
     // Configure tokens
-    console.log("\n⚙️  8. Configuring Tokens...");
-    await routeProcessor.configureToken(
+    console.log("\n⚙️  7. Configuring Tokens...");
+    const tx3 = await routeProcessor.configureToken(
       config.contracts.usdc,
       true,  // isUSDC
       ethers.constants.AddressZero,
       0
     );
+    await tx3.wait();
     console.log("✅ Configured USDC token");
     
     // Configure supported tokens in CCTPHookReceiver
-    await hookReceiver.setSupportedToken(config.contracts.usdc, true);
+    const tx4 = await hookReceiver.setSupportedToken(config.contracts.usdc, true);
+    await tx4.wait();
     console.log("✅ Set USDC as supported in hook receiver");
     
-    // ============ 9. Transfer Ownership to Timelock ============
-    console.log("\n🔐 9. Transferring Ownership to Timelock...");
-    
-    await swapExecutor.transferOwnership(timelock.address);
-    console.log("✅ SwapExecutor ownership transferred");
-    
-    await feeManager.transferOwnership(timelock.address);
-    console.log("✅ FeeManager ownership transferred");
-    
-    await hookReceiver.transferOwnership(timelock.address);
-    console.log("✅ CCTPHookReceiver ownership transferred");
-    
-    await routeProcessor.transferOwnership(timelock.address);
-    console.log("✅ RouteProcessor ownership transferred");
-    
-    await stableRouter.transferOwnership(timelock.address);
-    console.log("✅ StableRouter ownership transferred");
-    
-    // ============ 10. Save Deployment Info ============
+    // ============ 8. Save Deployment Info ============
     const deploymentInfo = {
       network: network,
       chainId: config.chainId,
       deployer: deployer.address,
+      owner: deployer.address,
       timestamp: new Date().toISOString(),
       contracts: deployedContracts,
       externalContracts: config.contracts,
-      multisig: {
-        proposers: [proposer1.address, proposer2.address, proposer3.address],
-        executors: [executor1.address, executor2.address],
-        minDelay: "2 days"
+      configuration: {
+        cctpDomain: config.cctpDomain,
+        layerZeroId: config.layerZeroId,
+        stargateId: config.stargateId
       }
     };
     
-    const deploymentPath = path.join(__dirname, `../deployments/${network}-deployment.json`);
+    const deploymentPath = path.join(__dirname, `../deployments/${network}-deployment-simple.json`);
     fs.mkdirSync(path.dirname(deploymentPath), { recursive: true });
     fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
     
@@ -217,18 +183,22 @@ async function main() {
     console.log("=====================================\n");
     console.log("📄 Deployment info saved to:", deploymentPath);
     console.log("\n📋 Deployed Contracts:");
-    console.log("├── TimelockMultisig:", deployedContracts.timelock);
     console.log("├── StableRouter:", deployedContracts.stableRouter);
     console.log("├── RouteProcessor:", deployedContracts.routeProcessor);
     console.log("├── SwapExecutor:", deployedContracts.swapExecutor);
     console.log("├── FeeManager:", deployedContracts.feeManager);
     console.log("└── CCTPHookReceiver:", deployedContracts.hookReceiver);
     
+    console.log("\n👤 Owner:", deployer.address);
+    console.log("   (All contracts owned by deployer - no multi-sig)");
+    
     console.log("\n🔍 Next Steps:");
-    console.log("1. Verify contracts on Etherscan");
-    console.log("2. Configure additional tokens and pools");
-    console.log("3. Set up cross-chain receivers on other testnets");
-    console.log("4. Run integration tests");
+    console.log("1. Verify contracts on Etherscan:");
+    console.log(`   npx hardhat run scripts/verify-testnet-simple.js --network ${network}`);
+    console.log("\n2. Run tests:");
+    console.log(`   npx hardhat run scripts/test-testnet-simple.js --network ${network}`);
+    console.log("\n3. Configure additional tokens and pools");
+    console.log("4. Set up cross-chain receivers on other testnets");
     
   } catch (error) {
     console.error("\n❌ Deployment failed:", error);

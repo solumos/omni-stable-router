@@ -32,14 +32,6 @@ contract TimelockMultisig is TimelockController {
         require(executors.length >= 2, "Need at least 2 executors");
     }
     
-    /**
-     * @notice Update the minimum delay
-     * @param newDelay New minimum delay in seconds
-     */
-    function updateDelay(uint256 newDelay) external virtual {
-        require(msg.sender == address(this), "TimelockController: caller must be timelock");
-        require(newDelay >= MIN_DELAY && newDelay <= MAX_DELAY, "Invalid delay");
-        _minDelay = newDelay;
-        emit MinDelayChange(_minDelay, newDelay);
-    }
+    // Note: Delay can only be updated via a proposal through the timelock itself
+    // The TimelockController has built-in updateDelay function that requires TIMELOCK_ADMIN_ROLE
 }

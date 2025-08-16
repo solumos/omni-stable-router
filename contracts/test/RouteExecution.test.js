@@ -37,7 +37,7 @@ describe("Route Execution - Comprehensive Tests", function () {
     await feeManager.waitForDeployment();
 
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
-    swapExecutor = await SwapExecutor.deploy();
+    swapExecutor = await SwapExecutor.deploy("0x0000000000000000000000000000000000000001");
     await swapExecutor.waitForDeployment();
 
     const MockRouteProcessor = await ethers.getContractFactory("MockRouteProcessor");
@@ -566,7 +566,7 @@ describe("Route Execution - Comprehensive Tests", function () {
 
       await expect(
         stableRouter.connect(user).executeRoute(routeParams, { value: 0 })
-      ).to.be.revertedWith("Invalid recipient");
+      ).to.be.revertedWith("VL: Invalid recipient");
     });
 
     it("Should handle decimal conversion correctly", async function () {
