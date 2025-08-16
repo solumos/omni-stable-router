@@ -2,6 +2,14 @@
 
 A deterministic cross-chain payment system that routes **only native (issuer-deployed)** stablecoins using Circle's CCTP and LayerZero, avoiding bridged assets for maximum security and efficiency.
 
+## 📦 Monorepo Structure
+
+This project is organized as a monorepo with three packages:
+
+- **`packages/contracts`** - Smart contracts and deployment scripts
+- **`packages/frontend`** - Next.js web application
+- **`packages/shared`** - Shared utilities, types, and route planning logic
+
 ## 🎯 Key Innovation: One Transaction
 
 Traditional cross-chain payments require multiple transactions, approvals, and waiting periods. Our hybrid router enables:
@@ -64,21 +72,37 @@ Customer Payment → Router Decision:
 ### Installation
 
 ```bash
+# Install all dependencies
 npm install
+
+# Copy environment variables
 cp .env.example .env  # Add your private key and RPC endpoints
 ```
 
-### Deploy
+### Development
 
 ```bash
-# Deploy to Base
-npm run deploy:base
+# Run frontend development server
+npm run dev
 
-# Deploy to Avalanche  
-npm run deploy:avalanche
+# Compile contracts
+npm run compile
 
-# Deploy to all supported chains
-npm run deploy:all
+# Run tests
+npm run test
+
+# Build all packages
+npm run build
+```
+
+### Deploy Contracts
+
+```bash
+# Deploy to specific network
+cd packages/contracts
+npm run deploy -- --network base
+npm run deploy -- --network arbitrum
+npm run deploy -- --network avalanche
 ```
 
 ### Make a Payment
