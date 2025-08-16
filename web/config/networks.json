@@ -1,0 +1,162 @@
+{
+  "networks": {
+    "1": {
+      "name": "Ethereum",
+      "shortName": "ETH",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://eth.llamarpc.com",
+        "fallback": [
+          "https://rpc.ankr.com/eth",
+          "https://cloudflare-eth.com"
+        ]
+      },
+      "blockExplorer": {
+        "name": "Etherscan",
+        "url": "https://etherscan.io"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "10": {
+      "name": "Optimism",
+      "shortName": "OP",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://mainnet.optimism.io",
+        "fallback": [
+          "https://rpc.ankr.com/optimism",
+          "https://opt-mainnet.g.alchemy.com/v2/demo"
+        ]
+      },
+      "blockExplorer": {
+        "name": "Optimistic Etherscan",
+        "url": "https://optimistic.etherscan.io"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "137": {
+      "name": "Polygon",
+      "shortName": "POLY",
+      "nativeCurrency": {
+        "name": "MATIC",
+        "symbol": "MATIC",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://polygon-rpc.com",
+        "fallback": [
+          "https://rpc.ankr.com/polygon",
+          "https://polygon-mainnet.g.alchemy.com/v2/demo"
+        ]
+      },
+      "blockExplorer": {
+        "name": "PolygonScan",
+        "url": "https://polygonscan.com"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "8453": {
+      "name": "Base",
+      "shortName": "BASE",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://mainnet.base.org",
+        "fallback": [
+          "https://base.llamarpc.com",
+          "https://rpc.ankr.com/base"
+        ]
+      },
+      "blockExplorer": {
+        "name": "BaseScan",
+        "url": "https://basescan.org"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "42161": {
+      "name": "Arbitrum",
+      "shortName": "ARB",
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://arb1.arbitrum.io/rpc",
+        "fallback": [
+          "https://rpc.ankr.com/arbitrum",
+          "https://arbitrum.llamarpc.com"
+        ]
+      },
+      "blockExplorer": {
+        "name": "Arbiscan",
+        "url": "https://arbiscan.io"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "43114": {
+      "name": "Avalanche",
+      "shortName": "AVAX",
+      "nativeCurrency": {
+        "name": "AVAX",
+        "symbol": "AVAX",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://api.avax.network/ext/bc/C/rpc",
+        "fallback": [
+          "https://rpc.ankr.com/avalanche",
+          "https://avalanche.public-rpc.com"
+        ]
+      },
+      "blockExplorer": {
+        "name": "SnowTrace",
+        "url": "https://snowtrace.io"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    }
+  },
+  "layerZero": {
+    "endpointIds": {
+      "1": 30101,
+      "10": 30111,
+      "137": 30109,
+      "8453": 30184,
+      "42161": 30110,
+      "43114": 30106
+    }
+  },
+  "cctp": {
+    "domains": {
+      "1": 0,
+      "10": 2,
+      "137": 7,
+      "8453": 6,
+      "42161": 3,
+      "43114": 1
+    }
+  }
+}
