@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { ReceiveInterface } from '@/components/ReceiveInterface'
@@ -11,9 +10,9 @@ export default function ReceivePage() {
   const paymentId = searchParams.get('id')
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-12">
         <div className="max-w-lg mx-auto">
           {paymentId ? (
             <PaymentInterface paymentId={paymentId} />

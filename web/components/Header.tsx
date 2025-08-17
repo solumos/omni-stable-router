@@ -2,30 +2,35 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
-import { Send } from 'lucide-react'
+import { Send, ArrowLeftRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function Header() {
   return (
-    <header className="border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            StableRouter
+    <header className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-1">
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              OmniStable
+            </span>
+            <span className="text-2xl font-light text-gray-600">
+              Router
+            </span>
           </Link>
-          <nav className="hidden md:flex gap-4">
-            <Link
-              href="/"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            >
-              Swap
-            </Link>
-            <Link
-              href="/receive"
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white flex items-center gap-1"
-            >
-              <Send className="w-4 h-4" />
-              Receive
-            </Link>
+          <nav className="hidden md:flex gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/" className="flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4" />
+                Swap
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/receive" className="flex items-center gap-2">
+                <Send className="w-4 h-4" />
+                Receive
+              </Link>
+            </Button>
           </nav>
         </div>
         <ConnectButton />

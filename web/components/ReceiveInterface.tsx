@@ -1,29 +1,33 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Copy, Share2, CheckCircle } from 'lucide-react'
+import { Copy, Share2, CheckCircle, QrCode, Link2 } from 'lucide-react'
 import { TokenSelector } from './TokenSelector'
 import { ChainSelector } from './ChainSelector'
 import { CHAINS, TOKENS, getTokensForChain, type TokenSymbol } from '@/lib/constants'
 import { formatUnits, parseUnits } from 'viem'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
 
 export function ReceiveInterface() {
+  const { toast } = useToast()
   const [receiveToken, setReceiveToken] = useState<TokenSymbol>('USDC')
-  const [receiveChain, setReceiveChain] = useState(1)
+  const [receiveChain, setReceiveChain] = useState(11155111)
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [paymentLink, setPaymentLink] = useState('')
-  const [copied, setCopied] = useState(false)
 
   const availableTokens = useMemo(() => getTokensForChain(receiveChain), [receiveChain])
 
   const generatePaymentLink = () => {
     if (!amount) return
 
-    // Generate a unique payment ID
     const paymentId = Math.random().toString(36).substring(2, 15)
     
-    // Encode payment details
     const params = new URLSearchParams({
       id: paymentId,
       token: receiveToken,
@@ -35,7 +39,6 @@ export function ReceiveInterface() {
     const link = `${window.location.origin}/receive?${params.toString()}`
     setPaymentLink(link)
 
-    // Store payment details (in production, this would be stored in a database)
     localStorage.setItem(`payment_${paymentId}`, JSON.stringify({
       receiveToken,
       receiveChain,
@@ -43,12 +46,19 @@ export function ReceiveInterface() {
       description,
       createdAt: Date.now(),
     }))
+
+    toast({
+      title: "Payment link created!",
+      description: "Your payment link has been generated successfully.",
+    })
   }
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(paymentLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    toast({
+      title: "Copied!",
+      description: "Payment link has been copied to clipboard.",
+    })
   }
 
   const shareLink = async () => {
@@ -64,104 +74,115 @@ export function ReceiveInterface() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-4xl font-bold text-center mb-2 text-gray-900 dark:text-white">
+    <div className="space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">
           Request Payment
         </h1>
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          Create a payment link for receiving stablecoins
+        <p className="text-muted-foreground">
+          Create a payment link to receive stablecoins from anyone
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Amount to Receive
-            </label>
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="flex-1 bg-transparent text-2xl font-semibold outline-none"
-                />
-                <TokenSelector
-                  value={receiveToken}
-                  onChange={setReceiveToken}
-                  tokens={availableTokens}
-                />
-              </div>
-              <div className="mt-2">
-                <ChainSelector
-                  value={receiveChain}
-                  onChange={setReceiveChain}
-                />
-              </div>
+      <Card className="border-0 shadow-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-green-600" />
+            Payment Details
+          </CardTitle>
+          <CardDescription>
+            Set the amount and token you want to receive
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Amount to Receive</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="text-xl font-semibold"
+              />
+              <TokenSelector
+                value={receiveToken}
+                onChange={setReceiveToken}
+                tokens={availableTokens}
+              />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description (Optional)
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this payment for?"
-              className="w-full px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
+          <div className="space-y-2">
+            <Label>Receiving Chain</Label>
+            <ChainSelector
+              value={receiveChain}
+              onChange={setReceiveChain}
             />
           </div>
 
-          <button
+          <div className="space-y-2">
+            <Label>Description (Optional)</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this payment for?"
+              className="resize-none"
+              rows={3}
+            />
+          </div>
+        </CardContent>
+
+        <CardFooter>
+          <Button
             onClick={generatePaymentLink}
             disabled={!amount}
-            className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold transition-colors"
+            className="w-full"
+            size="lg"
           >
             Generate Payment Link
-          </button>
+          </Button>
+        </CardFooter>
+      </Card>
 
-          {paymentLink && (
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Your payment link is ready!
-              </p>
-              <div className="bg-white dark:bg-gray-700 rounded-lg p-3 break-all text-sm font-mono">
+      {paymentLink && (
+        <Card className="border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">
+          <CardHeader>
+            <CardTitle className="text-green-700 dark:text-green-400">
+              Payment Link Ready!
+            </CardTitle>
+            <CardDescription>
+              Share this link with anyone to receive payment
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-3 bg-background rounded-lg border">
+              <p className="text-sm font-mono break-all text-muted-foreground">
                 {paymentLink}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={copyToClipboard}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy Link
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={shareLink}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
-                >
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </button>
-              </div>
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={copyToClipboard}
+                variant="outline"
+                className="w-full"
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Link
+              </Button>
+              <Button
+                onClick={shareLink}
+                variant="outline"
+                className="w-full"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Share
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
