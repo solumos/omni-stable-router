@@ -1,0 +1,20 @@
+{
+  "network": "sepolia",
+  "router": "0x50964A8D340ae544828B825DaDe9133D77a1a70a",
+  "timestamp": "2025-08-17T04:08:01.247Z",
+  "routesConfigured": 1,
+  "sourceConfig": {
+    "chainId": 11155111,
+    "cctpDomain": 0,
+    "lzChainId": 10161,
+    "tokens": {
+      "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+      "PYUSD": "0xcac524bca292aaade2df8a05cc58f0a65b1b3bb9",
+      "USDe": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34"
+    },
+    "protocolContracts": {
+      "CCTP_TOKEN_MESSENGER": "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
+      "LAYERZERO_ENDPOINT": "0x6EDCE65403992e310A62460808c4b910D972f10f"
+    }
+  }
+}

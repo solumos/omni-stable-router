@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
+require("@tenderly/hardhat-tenderly");
 require("dotenv").config();
 
 module.exports = {
@@ -40,6 +41,22 @@ module.exports = {
       url: process.env.FUJI_RPC || "https://api.avax-test.network/ext/bc/C/rpc",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 43113,
+    },
+    // Tenderly Virtual TestNets (Forks of Mainnet)
+    tenderlyMainnet: {
+      url: process.env.TENDERLY_MAINNET_RPC || "https://virtual.mainnet.eu.rpc.tenderly.co/3c30b051-dd86-4ffd-8a11-d6540166a26a",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 9923, // Fork of Ethereum mainnet
+    },
+    tenderlyBase: {
+      url: process.env.TENDERLY_BASE_RPC || "https://virtual.base.eu.rpc.tenderly.co/6e52d4ad-a13f-427e-99b4-c8db3c903cdd",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 84539, // Fork of Base mainnet
+    },
+    tenderlyArbitrum: {
+      url: process.env.TENDERLY_ARBITRUM_RPC || "https://virtual.arbitrum.eu.rpc.tenderly.co/7427e450-38aa-49dc-8483-9cf7ad835368",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 9924, // Fork of Arbitrum mainnet
     },
     // Mainnets
     ethereum: {

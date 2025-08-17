@@ -1,0 +1,26 @@
+{
+  "network": "arbitrumSepolia",
+  "router": "0xA203B3A53e27d89bbf5bF98F097BBc97c5eC47e9",
+  "timestamp": "2025-08-17T04:55:03.180Z",
+  "routesConfigured": 1,
+  "sourceConfig": {
+    "chainId": 421614,
+    "cctpDomain": 3,
+    "lzChainId": 10231,
+    "tokens": {
+      "USDC": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+      "PYUSD": "0xcac524bca292aaade2df8a05cc58f0a65b1b3bb9",
+      "USDe": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34"
+    },
+    "swapPools": {
+      "PYUSD_USDe": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+      "PYUSD_USDC": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+      "USDe_USDC": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"
+    },
+    "protocolContracts": {
+      "CCTP_TOKEN_MESSENGER": "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
+      "CCTP_MESSAGE_TRANSMITTER": "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
+      "LAYERZERO_ENDPOINT": "0x6EDCE65403992e310A62460808c4b910D972f10f"
+    }
+  }
+}

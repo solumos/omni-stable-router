@@ -4,7 +4,7 @@ const { formatUnits, parseUnits } = require("ethers");
 // Deployed contracts
 const CONTRACTS = {
   sepolia: {
-    routeProcessor: "0xD039Cb6B9BbAb2DE0Ae0D92F1DdCb8e6A4Dc88de",
+    routeProcessor: "0x44A0DBcAe62a90De8E967c87aF1D670c8E0b42d0",  // Using StableRouter address
     USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
   },
   baseSepolia: {
