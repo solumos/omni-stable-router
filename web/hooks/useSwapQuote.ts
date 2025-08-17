@@ -33,22 +33,40 @@ export function useSwapQuote(params: SwapQuoteParams) {
       setError(null)
 
       try {
-        // Determine protocol based on tokens
-        let protocolKey = 'CCTP'
-        let estimatedTime = '15 seconds'
+        // Determine protocol based on tokens and chains
+        let protocolKey = 'LAYERZERO_OFT' // Default for same token transfers
+        let estimatedTime = '1-2 minutes'
+        
+        const isCrossChain = params.sourceChain !== params.destChain
+        const isSameToken = params.sourceToken === params.destToken
 
-        if (params.sourceToken === 'USDC' && params.destToken !== 'USDC') {
-          protocolKey = 'CCTP_HOOKS'
-          estimatedTime = '30 seconds'
-        } else if (params.sourceToken === 'USDT' || params.destToken === 'USDT') {
-          protocolKey = params.sourceToken !== params.destToken ? 'STARGATE_SWAP' : 'STARGATE'
-          estimatedTime = '2-3 minutes'
-        } else if (params.sourceToken === params.destToken) {
-          protocolKey = 'LAYERZERO_OFT'
-          estimatedTime = '1-2 minutes'
-        } else {
-          protocolKey = 'LZ_COMPOSER'
-          estimatedTime = '2-3 minutes'
+        if (isSameToken && isCrossChain) {
+          // Cross-chain same token transfers
+          if (params.sourceToken === 'USDC') {
+            // USDC always uses CCTP V2 for cross-chain
+            protocolKey = 'CCTP'
+            estimatedTime = '8-20 seconds'
+          } else {
+            // All other tokens use LayerZero OFT
+            protocolKey = 'LAYERZERO_OFT'
+            estimatedTime = '1-2 minutes'
+          }
+        } else if (!isSameToken && isCrossChain) {
+          // Cross-chain with token swap
+          if (params.sourceToken === 'USDC' || params.destToken === 'USDC') {
+            protocolKey = 'CCTP_HOOKS'
+            estimatedTime = '30 seconds'
+          } else if (params.sourceToken === 'USDT' || params.destToken === 'USDT') {
+            protocolKey = 'STARGATE_SWAP'
+            estimatedTime = '2-3 minutes'
+          } else {
+            protocolKey = 'LZ_COMPOSER'
+            estimatedTime = '2-3 minutes'
+          }
+        } else if (!isSameToken && !isCrossChain) {
+          // Same-chain swap
+          protocolKey = 'CCTP_HOOKS' // Using router for same-chain swaps
+          estimatedTime = '15 seconds'
         }
 
         const protocolFee = PROTOCOL_FEES[protocolKey as keyof typeof PROTOCOL_FEES]
@@ -70,9 +88,17 @@ export function useSwapQuote(params: SwapQuoteParams) {
           }
         }
 
+        // Format protocol name for display
+        let protocolDisplay = protocolKey.replace('_', ' ')
+        if (protocolKey === 'CCTP') {
+          protocolDisplay = 'CCTP V2'
+        } else if (protocolKey === 'CCTP_HOOKS') {
+          protocolDisplay = 'CCTP V2 Hooks'
+        }
+
         setQuote({
           estimatedOutput,
-          protocol: protocolKey.replace('_', ' '),
+          protocol: protocolDisplay,
           networkFee,
           estimatedTime,
           route: `${params.sourceToken} → ${params.destToken}`,
