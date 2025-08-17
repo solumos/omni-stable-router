@@ -26,7 +26,7 @@ export function Header() {
           </Link>
           <nav className="hidden md:flex gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/" className="flex items-center gap-2">
+              <Link href="/swap" className="flex items-center gap-2">
                 <ArrowLeftRight className="w-4 h-4" />
                 Swap
               </Link>

@@ -6,6 +6,7 @@ const CHAIN_LOGOS: Record<string, string> = {
   '1': '/logos/ethereum-eth-logo.svg',
   '8453': '/logos/base.svg',
   '42161': '/logos/arbitrum-arb-logo.svg',
+  '43114': '/logos/avalanche-avax-logo.svg',
 }
 
 // Build CHAINS from config
@@ -79,7 +80,7 @@ export type TokenSymbol = keyof typeof TOKENS
 
 export const getTokensForChain = (chainId: number): TokenSymbol[] => {
   return Object.entries(TOKENS)
-    .filter(([_, token]) => chainId in token.addresses)
+    .filter(([_, token]) => token && token.addresses && chainId in token.addresses)
     .map(([symbol]) => symbol as TokenSymbol)
 }
 
@@ -87,5 +88,10 @@ export const isTokenAvailableOnChain = (
   token: TokenSymbol,
   chainId: number
 ): boolean => {
-  return chainId in TOKENS[token].addresses
+  const tokenData = TOKENS[token]
+  if (!tokenData) {
+    console.warn(`Token ${token} not found in TOKENS`)
+    return false
+  }
+  return chainId in tokenData.addresses
 }

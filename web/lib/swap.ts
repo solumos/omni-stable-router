@@ -1,7 +1,7 @@
 import { type Address, erc20Abi } from 'viem'
 import { getWalletClient, getPublicClient, waitForTransactionReceipt } from '@wagmi/core'
 import { TOKENS, type TokenSymbol } from './constants'
-import { STABLE_ROUTER_ADDRESSES, STABLE_ROUTER_ABI, Protocol } from './contracts'
+import { UNIFIED_ROUTER_ADDRESSES, UNIFIED_ROUTER_ABI, Protocol } from './contracts'
 import { config } from './wagmi'
 
 interface SwapParams {
@@ -22,16 +22,9 @@ export async function executeSwap(params: SwapParams) {
     throw new Error('Wallet or public client not available')
   }
 
-  const routerAddress = STABLE_ROUTER_ADDRESSES[params.sourceChain]
+  const routerAddress = UNIFIED_ROUTER_ADDRESSES[params.sourceChain]
   if (!routerAddress || routerAddress === '0x0000000000000000000000000000000000000000') {
-    // For demo purposes, simulate the swap
-    console.log('Demo mode: Simulating swap', params)
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Demo swap completed!')
-        resolve(true)
-      }, 2000)
-    })
+    throw new Error(`UnifiedRouter not deployed on chain ${params.sourceChain}`)
   }
 
   const sourceTokenAddress = TOKENS[params.sourceToken].addresses[
@@ -52,39 +45,58 @@ export async function executeSwap(params: SwapParams) {
     chainId: params.sourceChain,
   })
 
-  // Step 2: Determine protocol
-  let protocol = Protocol.CCTP
-  if (params.sourceToken === 'USDC' && params.destToken !== 'USDC') {
-    protocol = Protocol.CCTP_HOOKS
-  } else if (params.sourceToken === 'USDT' || params.destToken === 'USDT') {
-    protocol = Protocol.STARGATE
-  } else if (params.sourceToken === params.destToken) {
-    protocol = Protocol.LAYERZERO_OFT
-  } else {
-    protocol = Protocol.LZ_COMPOSER
-  }
-
-  // Step 3: Execute the swap
+  // Step 2: Get destination token address
   const destTokenAddress = TOKENS[params.destToken].addresses[
     params.destChain as keyof typeof TOKENS[typeof params.destToken]['addresses']
   ] as Address
 
-  const swapTx = await walletClient.writeContract({
-    chain: null,
-    address: routerAddress,
-    abi: STABLE_ROUTER_ABI,
-    functionName: 'executeRoute',
-    args: [
-      sourceTokenAddress,
-      destTokenAddress,
-      params.amount,
-      BigInt(params.destChain),
-      params.recipient,
-      params.quote.estimatedOutput * BigInt(97) / BigInt(100), // 3% slippage
-      '0x', // Empty route data for now
-    ],
-    value: params.quote.networkFee ? BigInt(params.quote.networkFee * 1e18) : BigInt(0),
-  })
+  // Step 3: Execute the transfer
+  // For same-chain swaps or cross-chain transfers with swaps, use transferWithSwap
+  // For simple cross-chain transfers of same token, use transfer
+  const isCrossChain = params.sourceChain !== params.destChain
+  const isSwap = params.sourceToken !== params.destToken
+  
+  let swapTx
+  if (!isCrossChain && !isSwap) {
+    // Simple same-chain, same-token transfer (shouldn't happen in UI)
+    throw new Error('Same chain, same token transfers not supported')
+  } else if (isCrossChain && !isSwap) {
+    // Cross-chain transfer of same token - use simple transfer function
+    swapTx = await walletClient.writeContract({
+      address: routerAddress,
+      abi: UNIFIED_ROUTER_ABI,
+      functionName: 'transfer',
+      args: [
+        sourceTokenAddress,  // fromToken
+        destTokenAddress,    // toToken (same token, different chain)
+        params.amount,       // amount
+        BigInt(params.destChain), // toChainId
+        params.recipient,    // recipient
+      ],
+      value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
+    })
+  } else {
+    // Cross-chain with swap or same-chain swap - use transferWithSwap
+    const minAmountOut = params.quote.estimatedOutput ? 
+      params.quote.estimatedOutput * BigInt(97) / BigInt(100) : // 3% slippage
+      BigInt(0)
+    
+    swapTx = await walletClient.writeContract({
+      address: routerAddress,
+      abi: UNIFIED_ROUTER_ABI,
+      functionName: 'transferWithSwap',
+      args: [
+        sourceTokenAddress,  // fromToken
+        destTokenAddress,    // toToken
+        params.amount,       // amount
+        BigInt(params.destChain), // toChainId
+        params.recipient,    // recipient
+        minAmountOut,        // minAmountOut
+        '0x',               // swapData (empty for now)
+      ],
+      value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
+    })
+  }
 
   const receipt = await waitForTransactionReceipt(config, {
     hash: swapTx,
