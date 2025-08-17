@@ -9,6 +9,7 @@ import logging
 
 from app.config import settings
 from app.routes import router
+from app.relayer_routes import router as relayer_router
 
 # Configure logging
 logging.basicConfig(
@@ -46,6 +47,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(router, prefix="/api/v1")
+app.include_router(relayer_router, prefix="/api/v1")
 
 
 @app.get("/")
