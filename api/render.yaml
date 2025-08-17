@@ -1,0 +1,68 @@
+services:
+  # Web Service for the API
+  - type: web
+    name: stable-router-api
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: RELAYER_ENABLED
+        value: "true"
+      - key: RELAYER_PRIVATE_KEY
+        sync: false  # Secret - set in Render dashboard
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stable-router-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: stable-router-cache
+          property: connectionString
+      # RPC endpoints
+      - key: ETHEREUM_RPC
+        value: "https://eth.llamarpc.com"
+      - key: ARBITRUM_RPC
+        value: "https://arb1.arbitrum.io/rpc"
+      - key: BASE_RPC
+        value: "https://mainnet.base.org"
+      - key: OPTIMISM_RPC
+        value: "https://mainnet.optimism.io"
+      - key: POLYGON_RPC
+        value: "https://polygon-rpc.com"
+      - key: AVALANCHE_RPC
+        value: "https://api.avax.network/ext/bc/C/rpc"
+    autoDeploy: true
+    healthCheckPath: /health
+    plan: starter  # Upgrade to standard for production
+
+  # Background Worker for Relayer (if needed separately)
+  - type: worker
+    name: stable-router-relayer
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python run_relayer.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: RELAYER_PRIVATE_KEY
+        sync: false  # Secret
+      - key: NETWORK
+        value: "mainnet"
+    plan: starter
+
+# Database
+databases:
+  - name: stable-router-db
+    plan: starter
+    databaseName: stable_router
+    user: stable_router
+
+# Redis Cache
+services:
+  - type: redis
+    name: stable-router-cache
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
