@@ -3,7 +3,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Send, ArrowLeftRight, Zap } from 'lucide-react'
+import { Send, ArrowLeftRight, Zap, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function Header() {
@@ -29,6 +29,12 @@ export function Header() {
               <Link href="/" className="flex items-center gap-2">
                 <ArrowLeftRight className="w-4 h-4" />
                 Swap
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/request" className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Request
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>

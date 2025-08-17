@@ -22,9 +22,9 @@ export function SwapInterface() {
   const { switchChain } = useSwitchChain()
 
   const [sourceToken, setSourceToken] = useState<TokenSymbol>('USDC')
-  const [destToken, setDestToken] = useState<TokenSymbol>('USDC')
-  const [sourceChain, setSourceChain] = useState(11155111) // Default to Sepolia
-  const [destChain, setDestChain] = useState(84532) // Default to Base Sepolia
+  const [destToken, setDestToken] = useState<TokenSymbol>('USDe')
+  const [sourceChain, setSourceChain] = useState(1) // Default to Ethereum Mainnet
+  const [destChain, setDestChain] = useState(8453) // Default to Base
   const [amount, setAmount] = useState('')
   const [isSwapping, setIsSwapping] = useState(false)
 
@@ -109,34 +109,36 @@ export function SwapInterface() {
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">You pay</Label>
           <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
+            <div className="flex gap-3 items-center">
+              <div className="flex-1 relative bg-white rounded-lg px-3 py-2 min-h-[48px] flex items-center">
                 <Input
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="text-2xl font-semibold border-0 bg-transparent h-auto p-0 focus-visible:ring-0"
+                  className="text-xl font-semibold border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-full"
                 />
                 {balance && (
                   <button
                     onClick={() => setAmount(formatUnits(balance, TOKENS[sourceToken].decimals))}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:text-blue-700 font-medium bg-blue-50 px-2 py-1 rounded"
                   >
-                    Max: {formatUnits(balance, TOKENS[sourceToken].decimals)}
+                    Max
                   </button>
                 )}
               </div>
-              <TokenSelector
-                value={sourceToken}
-                onChange={setSourceToken}
-                tokens={availableSourceTokens}
-              />
+              <div className="flex gap-2">
+                <TokenSelector
+                  value={sourceToken}
+                  onChange={setSourceToken}
+                  tokens={availableSourceTokens}
+                />
+                <ChainSelector
+                  value={sourceChain}
+                  onChange={setSourceChain}
+                />
+              </div>
             </div>
-            <ChainSelector
-              value={sourceChain}
-              onChange={setSourceChain}
-            />
           </div>
         </div>
 
@@ -156,26 +158,28 @@ export function SwapInterface() {
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">You receive</Label>
           <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
+            <div className="flex gap-3 items-center">
+              <div className="flex-1 bg-white rounded-lg px-3 py-2 min-h-[48px] flex items-center">
                 <Input
                   type="number"
                   value={quote ? formatUnits(quote.estimatedOutput, TOKENS[destToken].decimals) : ''}
                   readOnly
                   placeholder="0.00"
-                  className="text-2xl font-semibold border-0 bg-transparent h-auto p-0 focus-visible:ring-0"
+                  className="text-xl font-semibold border-0 bg-transparent h-auto p-0 focus-visible:ring-0 w-full text-gray-600"
                 />
               </div>
-              <TokenSelector
-                value={destToken}
-                onChange={setDestToken}
-                tokens={availableDestTokens}
-              />
+              <div className="flex gap-2">
+                <TokenSelector
+                  value={destToken}
+                  onChange={setDestToken}
+                  tokens={availableDestTokens}
+                />
+                <ChainSelector
+                  value={destChain}
+                  onChange={setDestChain}
+                />
+              </div>
             </div>
-            <ChainSelector
-              value={destChain}
-              onChange={setDestChain}
-            />
           </div>
         </div>
 

@@ -4,13 +4,8 @@ import tokensConfig from '@/config/tokens.json'
 // Chain logos mapping
 const CHAIN_LOGOS: Record<string, string> = {
   '1': '/logos/ethereum-eth-logo.svg',
-  '10': '/logos/ethereum-eth-logo.svg', // Optimism uses ETH logo for now
-  '137': '/logos/polygon-matic-logo.svg',
   '8453': '/logos/base.svg',
   '42161': '/logos/arbitrum-arb-logo.svg',
-  '43114': '/logos/avalanche-avax-logo.svg',
-  '11155111': '/logos/ethereum-eth-logo.svg', // Sepolia
-  '84532': '/logos/base.svg', // Base Sepolia
 }
 
 // Build CHAINS from config

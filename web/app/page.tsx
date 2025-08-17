@@ -24,7 +24,7 @@ export default function Home() {
               <span className="text-gray-800"> Router</span>
             </h1>
             <p className="text-lg text-gray-600 max-w-md mx-auto">
-              The most efficient cross-chain stablecoin exchange. Swap USDC, USDT, PYUSD, and more across 6+ networks instantly.
+              The most efficient cross-chain stablecoin exchange. Swap USDC, PYUSD, and USDe across Ethereum, Arbitrum, and Base.
             </p>
             <div className="flex justify-center gap-4 pt-2">
               <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -33,7 +33,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <span>0.1% Fee</span>
+                <span>Low Fees</span>
               </div>
             </div>
           </div>

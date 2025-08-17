@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 
 interface ChainSelectorProps {
   value: number
@@ -21,38 +20,32 @@ export function ChainSelector({ value, onChange }: ChainSelectorProps) {
 
   return (
     <Select value={value.toString()} onValueChange={(v) => onChange(Number(v))}>
-      <SelectTrigger className="w-full">
+      <SelectTrigger className="w-[120px] h-12 border-0 bg-white hover:bg-gray-50">
         <SelectValue>
           <div className="flex items-center gap-2">
             <Image
               src={selectedChain?.logo || '/logos/ethereum-eth-logo.svg'}
-              alt={selectedChain?.name || ''}
-              width={20}
-              height={20}
+              alt={selectedChain?.short || ''}
+              width={24}
+              height={24}
               className="rounded-full"
             />
-            <span className="font-medium">{selectedChain?.name}</span>
-            {(value === 11155111 || value === 84532) && (
-              <Badge variant="secondary" className="ml-auto text-xs">Testnet</Badge>
-            )}
+            <span className="font-semibold">{selectedChain?.short}</span>
           </div>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {Object.values(CHAINS).map((chain) => (
           <SelectItem key={chain.id} value={chain.id.toString()}>
-            <div className="flex items-center gap-2 w-full">
+            <div className="flex items-center gap-2">
               <Image
                 src={chain.logo}
-                alt={chain.name}
-                width={16}
-                height={16}
+                alt={chain.short}
+                width={20}
+                height={20}
                 className="rounded-full"
               />
-              <span>{chain.name}</span>
-              {(chain.id === 11155111 || chain.id === 84532) && (
-                <Badge variant="secondary" className="ml-auto text-xs">Testnet</Badge>
-              )}
+              <span className="font-semibold">{chain.short}</span>
             </div>
           </SelectItem>
         ))}

@@ -23,52 +23,6 @@
         "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
       }
     },
-    "10": {
-      "name": "Optimism",
-      "shortName": "OP",
-      "nativeCurrency": {
-        "name": "Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "rpcUrls": {
-        "default": "https://mainnet.optimism.io",
-        "fallback": [
-          "https://rpc.ankr.com/optimism",
-          "https://opt-mainnet.g.alchemy.com/v2/demo"
-        ]
-      },
-      "blockExplorer": {
-        "name": "Optimistic Etherscan",
-        "url": "https://optimistic.etherscan.io"
-      },
-      "contracts": {
-        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
-      }
-    },
-    "137": {
-      "name": "Polygon",
-      "shortName": "POLY",
-      "nativeCurrency": {
-        "name": "MATIC",
-        "symbol": "MATIC",
-        "decimals": 18
-      },
-      "rpcUrls": {
-        "default": "https://polygon-rpc.com",
-        "fallback": [
-          "https://rpc.ankr.com/polygon",
-          "https://polygon-mainnet.g.alchemy.com/v2/demo"
-        ]
-      },
-      "blockExplorer": {
-        "name": "PolygonScan",
-        "url": "https://polygonscan.com"
-      },
-      "contracts": {
-        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
-      }
-    },
     "8453": {
       "name": "Base",
       "shortName": "BASE",
@@ -114,100 +68,20 @@
       "contracts": {
         "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
       }
-    },
-    "43114": {
-      "name": "Avalanche",
-      "shortName": "AVAX",
-      "nativeCurrency": {
-        "name": "AVAX",
-        "symbol": "AVAX",
-        "decimals": 18
-      },
-      "rpcUrls": {
-        "default": "https://api.avax.network/ext/bc/C/rpc",
-        "fallback": [
-          "https://rpc.ankr.com/avalanche",
-          "https://avalanche.public-rpc.com"
-        ]
-      },
-      "blockExplorer": {
-        "name": "SnowTrace",
-        "url": "https://snowtrace.io"
-      },
-      "contracts": {
-        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
-      }
-    },
-    "11155111": {
-      "name": "Sepolia",
-      "shortName": "SEP",
-      "nativeCurrency": {
-        "name": "Sepolia Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "rpcUrls": {
-        "default": "https://ethereum-sepolia-rpc.publicnode.com",
-        "fallback": [
-          "https://rpc.sepolia.org",
-          "https://rpc2.sepolia.org",
-          "https://sepolia.gateway.tenderly.co"
-        ]
-      },
-      "blockExplorer": {
-        "name": "Sepolia Etherscan",
-        "url": "https://sepolia.etherscan.io"
-      },
-      "contracts": {
-        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
-      }
-    },
-    "84532": {
-      "name": "Base Sepolia",
-      "shortName": "BASE-SEP",
-      "nativeCurrency": {
-        "name": "Sepolia Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "rpcUrls": {
-        "default": "https://sepolia.base.org",
-        "fallback": [
-          "https://base-sepolia-rpc.publicnode.com",
-          "https://base-sepolia.gateway.tenderly.co"
-        ]
-      },
-      "blockExplorer": {
-        "name": "Base Sepolia Basescan",
-        "url": "https://sepolia.basescan.org"
-      },
-      "contracts": {
-        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
-      }
     }
   },
   "layerZero": {
     "endpointIds": {
       "1": 30101,
-      "10": 30111,
-      "137": 30109,
       "8453": 30184,
-      "42161": 30110,
-      "43114": 30106,
-      "11155111": 10161,
-      "84532": 10245
+      "42161": 30110
     }
   },
   "cctp": {
     "domains": {
       "1": 0,
-      "10": 2,
-      "137": 7,
       "8453": 6,
-      "42161": 3,
-      "43114": 1,
-      "11155111": 0,
-      "84532": 6
+      "42161": 3
     }
   }
 }
