@@ -17,6 +17,9 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:3001",
         "https://stable-router.vercel.app",
+        "https://omnistable.xyz",
+        "https://www.omnistable.xyz",
+        "*"  # Allow all origins for now
     ]
     
     # Database

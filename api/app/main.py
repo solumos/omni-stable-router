@@ -47,7 +47,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(router, prefix="/api/v1")
-app.include_router(relayer_router, prefix="/api/v1")
+app.include_router(relayer_router)  # No prefix - relayer routes are at /relayer/*
 
 
 @app.get("/")
