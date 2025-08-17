@@ -137,6 +137,53 @@
       "contracts": {
         "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
       }
+    },
+    "11155111": {
+      "name": "Sepolia",
+      "shortName": "SEP",
+      "nativeCurrency": {
+        "name": "Sepolia Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://ethereum-sepolia-rpc.publicnode.com",
+        "fallback": [
+          "https://rpc.sepolia.org",
+          "https://rpc2.sepolia.org",
+          "https://sepolia.gateway.tenderly.co"
+        ]
+      },
+      "blockExplorer": {
+        "name": "Sepolia Etherscan",
+        "url": "https://sepolia.etherscan.io"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
+    },
+    "84532": {
+      "name": "Base Sepolia",
+      "shortName": "BASE-SEP",
+      "nativeCurrency": {
+        "name": "Sepolia Ether",
+        "symbol": "ETH",
+        "decimals": 18
+      },
+      "rpcUrls": {
+        "default": "https://sepolia.base.org",
+        "fallback": [
+          "https://base-sepolia-rpc.publicnode.com",
+          "https://base-sepolia.gateway.tenderly.co"
+        ]
+      },
+      "blockExplorer": {
+        "name": "Base Sepolia Basescan",
+        "url": "https://sepolia.basescan.org"
+      },
+      "contracts": {
+        "multicall3": "0xca11bde05977b3631167028862be2a173976ca11"
+      }
     }
   },
   "layerZero": {
@@ -146,7 +193,9 @@
       "137": 30109,
       "8453": 30184,
       "42161": 30110,
-      "43114": 30106
+      "43114": 30106,
+      "11155111": 10161,
+      "84532": 10245
     }
   },
   "cctp": {
@@ -156,7 +205,9 @@
       "137": 7,
       "8453": 6,
       "42161": 3,
-      "43114": 1
+      "43114": 1,
+      "11155111": 0,
+      "84532": 6
     }
   }
 }

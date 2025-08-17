@@ -9,6 +9,8 @@ Contains deployed contract addresses for each chain:
 - `stableRouter`: Main router contract addresses
 - `routeProcessor`: Route processor contract addresses  
 - `cctpHookReceiver`: CCTP hook receiver addresses
+- `swapExecutor`: Swap executor addresses
+- `feeManager`: Fee manager addresses
 
 **Update this file after deploying contracts to each chain.**
 
@@ -25,6 +27,14 @@ Token configuration including:
 - Addresses on each chain
 - Default protocol for routing
 - Protocol fee estimates
+
+### `protocols.json`
+External protocol addresses and configurations:
+- **CCTP**: Token messenger and message transmitter addresses
+- **LayerZero**: Endpoint addresses for each chain
+- **Stargate**: Router addresses and pool IDs
+- **Swap Routers**: 1inch and Uniswap V3 addresses
+- **OFT Adapters**: Token-specific OFT adapter addresses
 
 ## Updating Configuration
 

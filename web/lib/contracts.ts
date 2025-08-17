@@ -1,6 +1,13 @@
 import { type Address } from 'viem'
 import contractsConfig from '@/config/contracts.json'
 
+// Import ABIs
+import StableRouterABI from '@/config/abis/StableRouter.abi.json'
+import RouteProcessorABI from '@/config/abis/RouteProcessor.abi.json'
+import SwapExecutorABI from '@/config/abis/SwapExecutor.abi.json'
+import FeeManagerABI from '@/config/abis/FeeManager.abi.json'
+import CCTPHookReceiverABI from '@/config/abis/CCTPHookReceiver.abi.json'
+
 // Contract addresses per chain from config
 export const STABLE_ROUTER_ADDRESSES: Record<number, Address> = Object.entries(
   contractsConfig.stableRouter
@@ -23,51 +30,13 @@ export const CCTP_HOOK_RECEIVER_ADDRESSES: Record<number, Address> = Object.entr
   return acc
 }, {} as Record<number, Address>)
 
-// StableRouter ABI (simplified for frontend use)
-export const STABLE_ROUTER_ABI = [
-  {
-    inputs: [
-      { name: 'sourceToken', type: 'address' },
-      { name: 'destToken', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'destChainId', type: 'uint256' },
-      { name: 'recipient', type: 'address' },
-      { name: 'minAmountOut', type: 'uint256' },
-      { name: 'routeData', type: 'bytes' },
-    ],
-    name: 'executeRoute',
-    outputs: [],
-    stateMutability: 'payable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'sourceToken', type: 'address' },
-      { name: 'destToken', type: 'address' },
-      { name: 'sourceChain', type: 'uint256' },
-      { name: 'destChain', type: 'uint256' },
-      { name: 'amount', type: 'uint256' },
-    ],
-    name: 'getQuote',
-    outputs: [
-      { name: 'estimatedOutput', type: 'uint256' },
-      { name: 'protocol', type: 'uint8' },
-      { name: 'networkFee', type: 'uint256' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { name: 'destChainId', type: 'uint256' },
-      { name: 'protocol', type: 'uint8' },
-    ],
-    name: 'estimateFee',
-    outputs: [{ name: 'fee', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
+// Export actual ABIs
+export const STABLE_ROUTER_ABI = StableRouterABI as const
+export const ROUTE_PROCESSOR_ABI = RouteProcessorABI as const
+export const SWAP_EXECUTOR_ABI = SwapExecutorABI as const
+export const FEE_MANAGER_ABI = FeeManagerABI as const
+export const CCTP_HOOK_RECEIVER_ABI = CCTPHookReceiverABI as const
+
 
 // Protocol enum values (must match contract)
 export enum Protocol {
