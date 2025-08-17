@@ -4,7 +4,7 @@ import networksConfig from '@/config/networks.json'
 
 // Build custom chains from config (all mainnet chains only)
 const chains = Object.entries(networksConfig.networks).map(([chainId, network]: [string, any]) => {
-  return defineChain({
+  const chain = defineChain({
     id: Number(chainId),
     name: network.name,
     nativeCurrency: network.nativeCurrency,
@@ -17,6 +17,13 @@ const chains = Object.entries(networksConfig.networks).map(([chainId, network]: 
     },
     contracts: network.contracts as any,
   })
+  
+  // Temporarily disable multicall for Base to fix balance fetching issues
+  if (Number(chainId) === 8453) {
+    delete chain.contracts?.multicall3
+  }
+  
+  return chain
 })
 
 export const config = getDefaultConfig({
