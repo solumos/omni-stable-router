@@ -31,11 +31,11 @@ export const CCTP_HOOK_RECEIVER_ADDRESSES: Record<number, Address> = Object.entr
 }, {} as Record<number, Address>)
 
 // Export actual ABIs
-export const STABLE_ROUTER_ABI = StableRouterABI as const
-export const ROUTE_PROCESSOR_ABI = RouteProcessorABI as const
-export const SWAP_EXECUTOR_ABI = SwapExecutorABI as const
-export const FEE_MANAGER_ABI = FeeManagerABI as const
-export const CCTP_HOOK_RECEIVER_ABI = CCTPHookReceiverABI as const
+export const STABLE_ROUTER_ABI = StableRouterABI
+export const ROUTE_PROCESSOR_ABI = RouteProcessorABI
+export const SWAP_EXECUTOR_ABI = SwapExecutorABI
+export const FEE_MANAGER_ABI = FeeManagerABI
+export const CCTP_HOOK_RECEIVER_ABI = CCTPHookReceiverABI
 
 
 // Protocol enum values (must match contract)

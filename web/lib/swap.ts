@@ -40,6 +40,7 @@ export async function executeSwap(params: SwapParams) {
 
   // Step 1: Approve token spending
   const approvalTx = await walletClient.writeContract({
+    chain: null,
     address: sourceTokenAddress,
     abi: erc20Abi,
     functionName: 'approve',
@@ -69,6 +70,7 @@ export async function executeSwap(params: SwapParams) {
   ] as Address
 
   const swapTx = await walletClient.writeContract({
+    chain: null,
     address: routerAddress,
     abi: STABLE_ROUTER_ABI,
     functionName: 'executeRoute',

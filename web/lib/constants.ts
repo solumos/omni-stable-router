@@ -37,10 +37,21 @@ const TOKEN_LOGOS: Record<string, string> = {
   'crvUSD': '/logos/crvusd.svg',
 }
 
+// Type for Token
+type Token = {
+  symbol: string
+  name: string
+  decimals: number
+  protocol: string
+  logo: string
+  addresses: Record<number, string>
+  icon?: string
+}
+
 // Build TOKENS from config
 export const TOKENS = Object.entries(tokensConfig.tokens).reduce(
   (acc, [symbol, token]) => {
-    acc[symbol as keyof typeof acc] = {
+    acc[symbol] = {
       symbol,
       name: token.name,
       decimals: token.decimals,
@@ -57,8 +68,8 @@ export const TOKENS = Object.entries(tokensConfig.tokens).reduce(
     }
     return acc
   },
-  {} as Record<string, any>
-) as const
+  {} as Record<string, Token>
+)
 
 // Protocol fees from config
 export const PROTOCOL_FEES = tokensConfig.protocolFees
