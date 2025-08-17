@@ -234,8 +234,8 @@ contract UnifiedRouter is Ownable, Pausable, ReentrancyGuard, IOAppComposer {
         
         // Execute transfer based on protocol
         if (route.protocol == Protocol.CCTP) {
-            // CCTP V1 doesn't support cross-token swaps natively
-            require(fromToken == toToken, "CCTP requires same token");
+            // CCTP is for USDC transfers - the route configuration ensures compatibility
+            // Note: fromToken and toToken will have different addresses on different chains
             _executeCCTP(fromToken, amount, recipient, route);
         } else if (route.protocol == Protocol.CCTP_HOOKS) {
             // CCTP V2 with hooks supports cross-token swaps

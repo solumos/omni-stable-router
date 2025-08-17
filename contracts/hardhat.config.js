@@ -58,6 +58,12 @@ module.exports = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 9924, // Fork of Arbitrum mainnet
     },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 31337, // Hardhat default chain ID
+      accounts: ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"], // Test account #0
+      timeout: 60000,
+    },
     // Mainnets
     ethereum: {
       url: process.env.ETHEREUM_RPC || "https://eth.llamarpc.com",
