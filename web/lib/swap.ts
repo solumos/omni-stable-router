@@ -3,6 +3,7 @@ import { getWalletClient, getPublicClient, waitForTransactionReceipt } from '@wa
 import { TOKENS, type TokenSymbol } from './constants'
 import { UNIFIED_ROUTER_ADDRESSES, UNIFIED_ROUTER_ABI, Protocol } from './contracts'
 import { config } from './wagmi'
+import { isCCTPTransfer, monitorTransfer } from './relayer-api'
 
 interface SwapParams {
   sourceToken: TokenSymbol
@@ -104,6 +105,29 @@ export async function executeSwap(params: SwapParams) {
     hash: swapTx,
     chainId: params.sourceChain,
   })
+
+  // Step 4: If this is a CCTP transfer, register it with the relayer for automated attestation
+  if (isCCTPTransfer(params.sourceToken, params.destToken, params.sourceChain, params.destChain)) {
+    console.log('🔄 CCTP transfer detected, registering with relayer for fast completion...')
+    
+    try {
+      const status = await monitorTransfer(
+        swapTx,
+        params.sourceChain,
+        params.destChain
+      )
+      
+      console.log('✅ Transfer registered with relayer:', status)
+      console.log('⚡ Expected completion: 8-20 seconds')
+      
+      // Store the monitored transfer info in the receipt for UI tracking
+      ;(receipt as any).relayerMonitored = true
+      ;(receipt as any).relayerStatus = status
+    } catch (error) {
+      console.warn('⚠️ Could not register with relayer, transfer will complete normally:', error)
+      // Transfer will still complete without relayer, just slower (10-20 minutes)
+    }
+  }
 
   return receipt
 }

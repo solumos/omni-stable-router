@@ -7,10 +7,12 @@ import { formatUnits, parseUnits, isAddress } from 'viem'
 import { ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { TokenSelector } from './TokenSelector'
 import { ChainSelector } from './ChainSelector'
+import { TransferStatus } from './TransferStatus'
 import { CHAINS, TOKENS, getTokensForChain, isTokenAvailableOnChain, type TokenSymbol } from '@/lib/constants'
 import { useSwapQuote } from '@/hooks/useSwapQuote'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { executeSwap } from '@/lib/swap'
+import { isCCTPTransfer } from '@/lib/relayer-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +36,7 @@ export function SendInterface() {
   const [sourceToken, setSourceToken] = useState<TokenSymbol>('USDC')
   const [sourceChain, setSourceChain] = useState(1) // Default to Ethereum
   const [isSending, setIsSending] = useState(false)
+  const [completedTxHash, setCompletedTxHash] = useState<string | null>(null)
 
   // Get available tokens for source chain
   const availableSourceTokens = useMemo(() => getTokensForChain(sourceChain), [sourceChain])
@@ -98,7 +101,7 @@ export function SendInterface() {
 
     setIsSending(true)
     try {
-      await executeSwap({
+      const receipt = await executeSwap({
         sourceToken,
         destToken: requestedToken,
         sourceChain,
@@ -107,6 +110,14 @@ export function SendInterface() {
         recipient: recipientAddress as `0x${string}`,
         quote,
       })
+      
+      // If successful, show the transfer status
+      setCompletedTxHash(receipt.transactionHash)
+      
+      // Log whether this will use the relayer
+      if (isCCTPTransfer(sourceToken, requestedToken, sourceChain, requestedChain)) {
+        console.log('✅ CCTP transfer initiated with automated attestation')
+      }
     } catch (error) {
       console.error('Send failed:', error)
     } finally {
@@ -126,6 +137,34 @@ export function SendInterface() {
           </Alert>
         </CardContent>
       </Card>
+    )
+  }
+
+  // Show transfer status if we have a completed transaction
+  if (completedTxHash) {
+    return (
+      <div className="space-y-4">
+        <TransferStatus
+          txHash={completedTxHash}
+          sourceChain={sourceChain}
+          destChain={requestedChain}
+          amount={requestedAmount}
+          token={requestedToken}
+          onClose={() => setCompletedTxHash(null)}
+        />
+        
+        {/* Option to make another payment */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            setCompletedTxHash(null)
+            // Reset form if needed
+          }}
+        >
+          Make Another Payment
+        </Button>
+      </div>
     )
   }
 
