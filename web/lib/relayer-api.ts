@@ -51,8 +51,8 @@ function getApiBaseUrl(): string {
     if (window.location.hostname === 'localhost') {
       return 'http://localhost:8000'
     }
-    // Production - adjust this to your deployed API URL
-    return process.env.NEXT_PUBLIC_API_URL || 'https://stable-router-api.onrender.com'
+    // Production - use the Omnistable API
+    return process.env.NEXT_PUBLIC_API_URL || 'https://api.omnistable.xyz'
   }
   // Server-side
   return process.env.API_URL || 'http://localhost:8000'
@@ -76,7 +76,7 @@ export async function monitorTransfer(
   const apiUrl = getApiBaseUrl()
   
   try {
-    const response = await fetch(`${apiUrl}/api/v1/relayer/monitor`, {
+    const response = await fetch(`${apiUrl}/relayer/monitor`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export async function getTransferStatus(txHash: string): Promise<TransferStatus 
   const apiUrl = getApiBaseUrl()
   
   try {
-    const response = await fetch(`${apiUrl}/api/v1/relayer/status/${txHash}`)
+    const response = await fetch(`${apiUrl}/relayer/status/${txHash}`)
     
     if (response.status === 404) {
       return null
@@ -177,7 +177,7 @@ export async function getRelayerStats() {
   const apiUrl = getApiBaseUrl()
   
   try {
-    const response = await fetch(`${apiUrl}/api/v1/relayer/stats`)
+    const response = await fetch(`${apiUrl}/relayer/stats`)
     
     if (!response.ok) {
       throw new Error('Failed to get relayer stats')
