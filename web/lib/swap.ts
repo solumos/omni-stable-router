@@ -74,6 +74,7 @@ export async function executeSwap(params: SwapParams) {
         params.recipient,    // recipient
       ],
       value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
+      chain: null,
     })
   } else {
     // Cross-chain with swap or same-chain swap - use transferWithSwap
@@ -95,6 +96,7 @@ export async function executeSwap(params: SwapParams) {
         '0x',               // swapData (empty for now)
       ],
       value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
+      chain: null,
     })
   }
 
