@@ -16,11 +16,24 @@ interface SwapParams {
 }
 
 export async function executeSwap(params: SwapParams) {
+  console.log('🔄 Starting swap with params:', {
+    sourceToken: params.sourceToken,
+    destToken: params.destToken,
+    sourceChain: params.sourceChain,
+    destChain: params.destChain,
+    amount: params.amount.toString(),
+    recipient: params.recipient
+  })
+
   const walletClient = await getWalletClient(config, { chainId: params.sourceChain })
   const publicClient = getPublicClient(config, { chainId: params.sourceChain })
   
   if (!walletClient || !publicClient) {
     throw new Error('Wallet or public client not available')
+  }
+
+  if (!walletClient.account) {
+    throw new Error('No account connected')
   }
 
   const routerAddress = UNIFIED_ROUTER_ADDRESSES[params.sourceChain]
@@ -32,25 +45,68 @@ export async function executeSwap(params: SwapParams) {
     params.sourceChain as keyof typeof TOKENS[typeof params.sourceToken]['addresses']
   ] as Address
 
-  // Step 1: Approve token spending
-  // Get current gas prices to avoid fee errors
-  const gasPrice = await publicClient.getGasPrice()
+  // Step 1: Check current allowance and approve if needed
+  const userAddress = walletClient.account.address
+  console.log('User address:', userAddress)
   
-  const approvalTx = await walletClient.writeContract({
-    chain: null,
+  const currentAllowance = await publicClient.readContract({
     address: sourceTokenAddress,
     abi: erc20Abi,
-    functionName: 'approve',
-    args: [routerAddress, params.amount],
-    // Use legacy gas pricing for Base to avoid EIP-1559 issues
-    gasPrice: gasPrice,
-    type: 'legacy' as any,
-  })
+    functionName: 'allowance',
+    args: [userAddress, routerAddress],
+  }) as bigint
 
-  await waitForTransactionReceipt(config, {
-    hash: approvalTx,
-    chainId: params.sourceChain,
-  })
+  console.log('Current allowance:', currentAllowance.toString())
+  console.log('Required amount:', params.amount.toString())
+  console.log('Router address:', routerAddress)
+  console.log('Token address:', sourceTokenAddress)
+
+  // Get current gas prices to avoid fee errors
+  const gasPrice = await publicClient.getGasPrice()
+
+  if (currentAllowance < params.amount) {
+    console.log('Approving tokens...')
+    // Use max uint256 for infinite approval to avoid future approval needs
+    const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+    const approvalAmount = MAX_UINT256 // or use params.amount for exact approval
+    
+    try {
+      const approvalTx = await walletClient.writeContract({
+        chain: null,
+        address: sourceTokenAddress,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [routerAddress, approvalAmount],
+        // Use legacy gas pricing for Base to avoid EIP-1559 issues
+        gasPrice: gasPrice,
+        type: 'legacy' as any,
+      })
+
+      const approvalReceipt = await waitForTransactionReceipt(config, {
+        hash: approvalTx,
+        chainId: params.sourceChain,
+      })
+      console.log('Approval complete:', approvalReceipt.transactionHash)
+      
+      // Double-check the allowance after approval
+      const newAllowance = await publicClient.readContract({
+        address: sourceTokenAddress,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [userAddress, routerAddress],
+      }) as bigint
+      console.log('New allowance after approval:', newAllowance.toString())
+      
+      if (newAllowance < params.amount) {
+        throw new Error('Approval failed - insufficient allowance after approval')
+      }
+    } catch (error) {
+      console.error('Approval failed:', error)
+      throw new Error(`Token approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  } else {
+    console.log('Sufficient allowance already exists')
+  }
 
   // Step 2: Get destination token address
   const destTokenAddress = TOKENS[params.destToken].addresses[
