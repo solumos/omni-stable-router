@@ -10,13 +10,32 @@ export default function Home() {
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-lg mx-auto space-y-8">
           <div className="text-center space-y-4">
+            <div className="flex justify-center mb-4">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl">
+                  <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
             <h1 className="text-5xl font-bold tracking-tight">
               <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">OmniStable</span>
               <span className="text-gray-800"> Router</span>
             </h1>
-            <p className="text-lg text-gray-600">
-              Swap stablecoins across multiple chains with the best rates and lowest fees
+            <p className="text-lg text-gray-600 max-w-md mx-auto">
+              The most efficient cross-chain stablecoin exchange. Swap USDC, USDT, PYUSD, and more across 6+ networks instantly.
             </p>
+            <div className="flex justify-center gap-4 pt-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span>Live on Mainnet</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                <span>0.1% Fee</span>
+              </div>
+            </div>
           </div>
           <SwapInterface />
         </div>

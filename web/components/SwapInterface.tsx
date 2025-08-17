@@ -91,16 +91,17 @@ export function SwapInterface() {
   }
 
   return (
-    <Card className="bg-white shadow-xl border-0">
+    <Card className="bg-white shadow-2xl border-0 overflow-hidden">
+      <div className="h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500" />
       <CardHeader className="space-y-1 pb-6">
         <CardTitle className="text-2xl flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
             <Zap className="w-5 h-5 text-white" />
           </div>
-          Swap
+          Cross-Chain Swap
         </CardTitle>
         <CardDescription>
-          Exchange stablecoins across different blockchain networks
+          Exchange stablecoins seamlessly across blockchain networks
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

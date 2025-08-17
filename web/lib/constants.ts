@@ -1,6 +1,18 @@
 import networksConfig from '@/config/networks.json'
 import tokensConfig from '@/config/tokens.json'
 
+// Chain logos mapping
+const CHAIN_LOGOS: Record<string, string> = {
+  '1': '/logos/ethereum-eth-logo.svg',
+  '10': '/logos/ethereum-eth-logo.svg', // Optimism uses ETH logo for now
+  '137': '/logos/polygon-matic-logo.svg',
+  '8453': '/logos/base.svg',
+  '42161': '/logos/arbitrum-arb-logo.svg',
+  '43114': '/logos/avalanche-avax-logo.svg',
+  '11155111': '/logos/ethereum-eth-logo.svg', // Sepolia
+  '84532': '/logos/base.svg', // Base Sepolia
+}
+
 // Build CHAINS from config
 export const CHAINS = Object.entries(networksConfig.networks).reduce(
   (acc, [chainId, network]) => {
@@ -9,11 +21,21 @@ export const CHAINS = Object.entries(networksConfig.networks).reduce(
       id: Number(chainId),
       name: network.name,
       short: network.shortName,
+      logo: CHAIN_LOGOS[chainId] || '/logos/ethereum-eth-logo.svg',
     }
     return acc
   },
-  {} as Record<string, { id: number; name: string; short: string }>
+  {} as Record<string, { id: number; name: string; short: string; logo: string }>
 )
+
+// Token logos mapping
+const TOKEN_LOGOS: Record<string, string> = {
+  'USDC': '/logos/usd-coin-usdc-logo.svg',
+  'USDT': '/logos/tether-usdt-logo.svg',
+  'PYUSD': '/logos/paypal-usd-pyusd-logo.svg',
+  'USDe': '/logos/ethena-usde-usde-logo.svg',
+  'crvUSD': '/logos/crvusd.svg',
+}
 
 // Build TOKENS from config
 export const TOKENS = Object.entries(tokensConfig.tokens).reduce(
@@ -23,6 +45,7 @@ export const TOKENS = Object.entries(tokensConfig.tokens).reduce(
       name: token.name,
       decimals: token.decimals,
       protocol: token.protocol,
+      logo: TOKEN_LOGOS[symbol] || '/logos/usd-coin-usdc-logo.svg',
       addresses: Object.entries(token.addresses).reduce(
         (addrAcc, [chainId, address]) => {
           addrAcc[Number(chainId)] = address
