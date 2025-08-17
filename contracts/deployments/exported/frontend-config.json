@@ -20,6 +20,24 @@
         "UniswapV3Router": "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4"
       }
     },
+    "421614": {
+      "name": "Arbitrum Sepolia",
+      "chainId": 421614,
+      "rpc": "https://sepolia-rollup.arbitrum.io/rpc",
+      "explorer": "https://sepolia.arbiscan.io",
+      "contracts": {
+        "RouteProcessor": "0xA450EB7baB661aC2C42F51B8f1e9A5BFc1fA6dE3",
+        "SwapExecutor": "0xdcf63233493ce3A981B1155Fbe1fD6795f3A83d8",
+        "CCTPHookReceiver": "0xA0FD978f89D941783A43aFBe092B614ef31571F3"
+      },
+      "externalContracts": {
+        "USDC": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+        "CCTPTokenMessenger": "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
+        "CCTPMessageTransmitter": "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
+        "LayerZeroEndpoint": "0x6EDCE65403992e310A62460808c4b910D972f10f",
+        "UniswapV3Router": "0x101F443B4d1b059569D643917553c771E1b9663E"
+      }
+    },
     "11155111": {
       "name": "Sepolia",
       "chainId": 11155111,

@@ -42,6 +42,23 @@ const DEPLOYMENTS = {
       LayerZeroEndpoint: "0x6EDCE65403992e310A62460808c4b910D972f10f",
       UniswapV3Router: "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4"
     }
+  },
+  arbitrumSepolia: {
+    chainId: 421614,
+    rpc: "https://sepolia-rollup.arbitrum.io/rpc",
+    explorer: "https://sepolia.arbiscan.io",
+    contracts: {
+      RouteProcessor: "0xA450EB7baB661aC2C42F51B8f1e9A5BFc1fA6dE3",
+      SwapExecutor: "0xdcf63233493ce3A981B1155Fbe1fD6795f3A83d8",
+      CCTPHookReceiver: "0xA0FD978f89D941783A43aFBe092B614ef31571F3"
+    },
+    externalContracts: {
+      USDC: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+      CCTPTokenMessenger: "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
+      CCTPMessageTransmitter: "0x7865fAfC2db2093669d92c0F33AeEF291086BEFD",
+      LayerZeroEndpoint: "0x6EDCE65403992e310A62460808c4b910D972f10f",
+      UniswapV3Router: "0x101F443B4d1b059569D643917553c771E1b9663E"
+    }
   }
 };
 
@@ -157,6 +174,7 @@ export interface NetworkDeployment {
 export const DEPLOYMENTS: {
   sepolia: NetworkDeployment;
   baseSepolia: NetworkDeployment;
+  arbitrumSepolia: NetworkDeployment;
 } = ${JSON.stringify(DEPLOYMENTS, null, 2)};
 `;
   
@@ -174,6 +192,10 @@ export const DEPLOYMENTS: {
       84532: {
         name: "Base Sepolia",
         ...DEPLOYMENTS.baseSepolia
+      },
+      421614: {
+        name: "Arbitrum Sepolia",
+        ...DEPLOYMENTS.arbitrumSepolia
       }
     },
     // Only include essential ABIs for frontend
@@ -206,11 +228,17 @@ export const DEPLOYMENTS: {
 - **FeeManager**: [${DEPLOYMENTS.baseSepolia.contracts.FeeManager}](${DEPLOYMENTS.baseSepolia.explorer}/address/${DEPLOYMENTS.baseSepolia.contracts.FeeManager})
 - **CCTPHookReceiver**: [${DEPLOYMENTS.baseSepolia.contracts.CCTPHookReceiver}](${DEPLOYMENTS.baseSepolia.explorer}/address/${DEPLOYMENTS.baseSepolia.contracts.CCTPHookReceiver})
 
+### Arbitrum Sepolia (Chain ID: 421614)
+- **RouteProcessor**: [${DEPLOYMENTS.arbitrumSepolia.contracts.RouteProcessor}](${DEPLOYMENTS.arbitrumSepolia.explorer}/address/${DEPLOYMENTS.arbitrumSepolia.contracts.RouteProcessor})
+- **SwapExecutor**: [${DEPLOYMENTS.arbitrumSepolia.contracts.SwapExecutor}](${DEPLOYMENTS.arbitrumSepolia.explorer}/address/${DEPLOYMENTS.arbitrumSepolia.contracts.SwapExecutor})
+- **CCTPHookReceiver**: [${DEPLOYMENTS.arbitrumSepolia.contracts.CCTPHookReceiver}](${DEPLOYMENTS.arbitrumSepolia.explorer}/address/${DEPLOYMENTS.arbitrumSepolia.contracts.CCTPHookReceiver})
+
 ## Files
 
 - \`deployments.json\` - Master deployment file with all networks and ABIs
 - \`sepolia.json\` - Sepolia-specific deployment
 - \`baseSepolia.json\` - Base Sepolia-specific deployment
+- \`arbitrumSepolia.json\` - Arbitrum Sepolia-specific deployment
 - \`frontend-config.json\` - Frontend-ready configuration
 - \`deployments.ts\` - TypeScript interfaces
 - \`*.abi.json\` - Individual ABI files for each contract
@@ -247,6 +275,7 @@ Generated: ${new Date().toISOString()}
   console.log("├── deployments.json (master file)");
   console.log("├── sepolia.json");
   console.log("├── baseSepolia.json");
+  console.log("├── arbitrumSepolia.json");
   console.log("├── frontend-config.json");
   console.log("├── deployments.ts");
   console.log("├── README.md");

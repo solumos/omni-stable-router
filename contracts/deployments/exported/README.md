@@ -16,11 +16,17 @@
 - **FeeManager**: [0xA0FD978f89D941783A43aFBe092B614ef31571F3](https://sepolia.basescan.org/address/0xA0FD978f89D941783A43aFBe092B614ef31571F3)
 - **CCTPHookReceiver**: [0xE2ea3f454e12362212b1734eD0218E7691bd985c](https://sepolia.basescan.org/address/0xE2ea3f454e12362212b1734eD0218E7691bd985c)
 
+### Arbitrum Sepolia (Chain ID: 421614)
+- **RouteProcessor**: [0xA450EB7baB661aC2C42F51B8f1e9A5BFc1fA6dE3](https://sepolia.arbiscan.io/address/0xA450EB7baB661aC2C42F51B8f1e9A5BFc1fA6dE3)
+- **SwapExecutor**: [0xdcf63233493ce3A981B1155Fbe1fD6795f3A83d8](https://sepolia.arbiscan.io/address/0xdcf63233493ce3A981B1155Fbe1fD6795f3A83d8)
+- **CCTPHookReceiver**: [0xA0FD978f89D941783A43aFBe092B614ef31571F3](https://sepolia.arbiscan.io/address/0xA0FD978f89D941783A43aFBe092B614ef31571F3)
+
 ## Files
 
 - `deployments.json` - Master deployment file with all networks and ABIs
 - `sepolia.json` - Sepolia-specific deployment
 - `baseSepolia.json` - Base Sepolia-specific deployment
+- `arbitrumSepolia.json` - Arbitrum Sepolia-specific deployment
 - `frontend-config.json` - Frontend-ready configuration
 - `deployments.ts` - TypeScript interfaces
 - `*.abi.json` - Individual ABI files for each contract
@@ -43,4 +49,4 @@ const stableRouterAddress = network.contracts.StableRouter;
 const abi = config.abis.StableRouter;
 ```
 
-Generated: 2025-08-17T01:45:54.139Z
+Generated: 2025-08-17T02:26:45.040Z
