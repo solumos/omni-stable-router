@@ -2,6 +2,7 @@
 
 import { SwapInterface } from '@/components/SwapInterface'
 import { Header } from '@/components/Header'
+import { LogoAnimated } from '@/components/Logo'
 
 export default function Home() {
   return (
@@ -13,9 +14,7 @@ export default function Home() {
             <div className="flex justify-center mb-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl">
-                  <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+                  <LogoAnimated className="w-12 h-12 text-white" />
                 </div>
               </div>
             </div>

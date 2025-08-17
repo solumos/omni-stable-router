@@ -3,9 +3,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
-import { ArrowDown, Loader2, Zap } from 'lucide-react'
+import { ArrowDown, Loader2 } from 'lucide-react'
 import { TokenSelector } from './TokenSelector'
 import { ChainSelector } from './ChainSelector'
+import { Logo } from './Logo'
 import { CHAINS, TOKENS, getTokensForChain, isTokenAvailableOnChain, type TokenSymbol } from '@/lib/constants'
 import { useSwapQuote } from '@/hooks/useSwapQuote'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
@@ -96,7 +97,7 @@ export function SwapInterface() {
       <CardHeader className="space-y-1 pb-6">
         <CardTitle className="text-2xl flex items-center gap-2">
           <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
-            <Zap className="w-5 h-5 text-white" />
+            <Logo className="w-5 h-5 text-white" />
           </div>
           Cross-Chain Swap
         </CardTitle>

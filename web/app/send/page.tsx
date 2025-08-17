@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { Header } from '@/components/Header'
 import { SendInterface } from '@/components/SendInterface'
+import { LogoAnimated } from '@/components/Logo'
 
 function SendPageContent() {
   return (
@@ -14,9 +15,7 @@ function SendPageContent() {
             <div className="flex justify-center mb-4">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl">
-                  <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
+                  <LogoAnimated className="w-12 h-12 text-white" />
                 </div>
               </div>
             </div>
