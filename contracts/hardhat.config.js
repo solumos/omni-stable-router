@@ -74,20 +74,18 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: {
-      // Mainnets
-      mainnet: process.env.ETHERSCAN_API_KEY || "",
-      arbitrumOne: process.env.ARBISCAN_API_KEY || "",
-      optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || "",
-      base: process.env.BASESCAN_API_KEY || "",
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      avalanche: process.env.SNOWTRACE_API_KEY || "",
-      // Testnets (using same API keys as mainnets)
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
-      arbitrumSepolia: process.env.ARBISCAN_API_KEY || "",
-      baseSepolia: process.env.BASESCAN_API_KEY || "",
-      avalancheFuji: process.env.SNOWTRACE_API_KEY || "",
-    },
+    // V2 API format - single API key for all Etherscan-based networks
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
+    customChains: [
+      {
+        network: "baseSepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org"
+        }
+      }
+    ]
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS === "true",
