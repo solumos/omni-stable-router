@@ -22,7 +22,9 @@ async function main() {
   // Deploy SwapExecutor
   console.log("\nDeploying SwapExecutor...");
   const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
-  const swapExecutor = await SwapExecutor.deploy();
+  // Use Base mainnet Uniswap V3 Router for localhost fork
+  const uniswapV3Router = chainId === 31337 ? "0x2626664c2603336E57B271c5C0b26F421741e481" : protocolAddresses.uniswapV3Router;
+  const swapExecutor = await SwapExecutor.deploy(uniswapV3Router);
   await swapExecutor.waitForDeployment();
   console.log("SwapExecutor deployed to:", await swapExecutor.getAddress());
 
@@ -95,6 +97,13 @@ async function main() {
 
 function getProtocolAddresses(chainId) {
   const addresses = {
+    31337: { // Localhost fork (Base mainnet addresses)
+      cctpTokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+      cctpMessageTransmitter: "0xAD09780d193884d503182aD4588450C416D6F9D4",
+      layerZeroEndpoint: "0x1a44076050125825900e736c501f859c50fE728c",
+      stargateRouter: "0x45f1A95A4D3f3836523F5c83673c797f4d4d263B",
+      uniswapV3Router: "0x2626664c2603336E57B271c5C0b26F421741e481"
+    },
     1: { // Ethereum
       cctpTokenMessenger: "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
       cctpMessageTransmitter: "0x0a992d191DEeC32aFe36203Ad87D7d289a738F81",
