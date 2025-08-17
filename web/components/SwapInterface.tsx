@@ -75,6 +75,14 @@ export function SwapInterface() {
       setAmount('')
     } catch (error) {
       console.error('Swap failed:', error)
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        if (error.message.includes('not deployed')) {
+          alert('Swap functionality is not yet available. Contracts are still being deployed.')
+        } else {
+          alert(`Swap failed: ${error.message}`)
+        }
+      }
     } finally {
       setIsSwapping(false)
     }
