@@ -2,17 +2,17 @@ const { ethers } = require("hardhat");
 const testnetAddresses = require("./testnet-addresses");
 
 async function main() {
-  const routerAddress = "0xC40c9276eaD77e75947a51b49b773A865aa8d1Be";
-  const swapExecutorAddress = "0xf44dA2A1f3b1aA0Fd79807E13b21d67A0eCE9DdE";
+  const routerAddress = "0x3d7F0B765Fe5BA84d50340230a6fFC060d16Be1B";
+  const swapExecutorAddress = "0x77CbBF036d9403b36F19C6A0A9Afffa45cA40950";
   
-  console.log("🔧 Configuring Base Sepolia UnifiedRouter...");
+  console.log("🔧 Configuring Arbitrum Sepolia UnifiedRouter...");
   console.log("Router:", routerAddress);
   console.log("SwapExecutor:", swapExecutorAddress);
   
   const [deployer] = await ethers.getSigners();
   const router = await ethers.getContractAt("UnifiedRouter", routerAddress);
   
-  const config = testnetAddresses.cctp.baseSepolia;
+  const config = testnetAddresses.cctp.arbitrumSepolia;
   
   console.log("\n1️⃣ Setting CCTP protocol...");
   let tx = await router.setProtocolContract(1, config.tokenMessenger);
@@ -20,7 +20,7 @@ async function main() {
   console.log("✅ CCTP configured");
   
   console.log("\n2️⃣ Setting LayerZero protocol...");
-  const lzConfig = testnetAddresses.layerZero.baseSepolia;
+  const lzConfig = testnetAddresses.layerZero.arbitrumSepolia;
   tx = await router.setProtocolContract(3, lzConfig.endpoint);
   await tx.wait();
   console.log("✅ LayerZero configured");
@@ -35,8 +35,8 @@ async function main() {
     extraData: "0x"
   };
   
-  const chainId = testnetAddresses.chainIds.baseSepolia;
-  const usdc = testnetAddresses.tokens.baseSepolia.usdc;
+  const chainId = testnetAddresses.chainIds.arbitrumSepolia;
+  const usdc = testnetAddresses.tokens.arbitrumSepolia.usdc;
   
   tx = await router.configureRoute(
     usdc, chainId, usdc, chainId, basicRoute
@@ -53,7 +53,7 @@ async function main() {
   console.log("LayerZero contract:", lzContract);
   console.log("Route configured:", routeConfigured);
   
-  console.log("\n✅ Base Sepolia configuration complete!");
+  console.log("\n✅ Arbitrum Sepolia configuration complete!");
 }
 
 main()

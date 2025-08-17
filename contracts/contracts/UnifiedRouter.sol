@@ -36,6 +36,20 @@ interface ITokenMessenger {
     ) external returns (uint64 nonce);
 }
 
+// CCTP V2 Interface
+interface ITokenMessengerV2 {
+    // CCTP V2 Enhanced depositForBurn with fast transfer support
+    function depositForBurn(
+        uint256 amount,
+        uint32 destinationDomain,
+        bytes32 mintRecipient,
+        address burnToken,
+        bytes32 destinationCaller,
+        uint256 maxFee,
+        uint32 minFinalityThreshold
+    ) external returns (uint64 nonce);
+}
+
 // CCTP V2 Message Transmitter for hooks
 interface IMessageTransmitter {
     function sendMessage(
@@ -269,7 +283,7 @@ contract UnifiedRouter is Ownable, Pausable, ReentrancyGuard, IOAppComposer {
         address recipient,
         Route memory route
     ) private {
-        ITokenMessenger messenger = ITokenMessenger(route.bridgeContract);
+        ITokenMessengerV2 messenger = ITokenMessengerV2(route.bridgeContract);
         
         // Approve token to messenger
         IERC20(token).forceApprove(route.bridgeContract, amount);
@@ -277,12 +291,15 @@ contract UnifiedRouter is Ownable, Pausable, ReentrancyGuard, IOAppComposer {
         // Convert recipient to bytes32 - properly zero-padded
         bytes32 mintRecipient = bytes32(bytes20(recipient));
         
-        // Execute burn and transfer
+        // Execute CCTP v2 fast transfer
         messenger.depositForBurn(
             amount,
             route.protocolDomain,
             mintRecipient,
-            token
+            token,
+            bytes32(0),  // No destination caller (standard transfer)
+            0,           // No max fee limit (accept any fee)
+            1000         // Fast finality threshold (8-20 seconds)
         );
     }
     

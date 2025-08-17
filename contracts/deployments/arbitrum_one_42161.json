@@ -1,0 +1,22 @@
+{
+  "network": "Arbitrum One",
+  "chainId": 42161,
+  "contracts": {
+    "swapExecutor": "0xdcf63233493ce3A981B1155Fbe1fD6795f3A83d8",
+    "unifiedRouter": "0xA0FD978f89D941783A43aFBe092B614ef31571F3"
+  },
+  "protocols": {
+    "cctp": {
+      "protocol": 1,
+      "address": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+      "configured": true
+    },
+    "layerzero": {
+      "protocol": 3,
+      "address": "0x1a44076050125825900e736c501f859c50fE728c",
+      "configured": true
+    }
+  },
+  "owner": "0xFC825D166f219ea5Aa75d993609eae546E013cEE",
+  "deployedAt": "2025-08-17T09:05:22.585Z"
+}
