@@ -14,14 +14,29 @@ export function useTokenBalance(token: TokenSymbol, chainId: number) {
       return
     }
 
-    const tokenAddress = TOKENS[token].addresses[chainId as keyof typeof TOKENS[typeof token]['addresses']]
+    const tokenData = TOKENS[token]
+    if (!tokenData) {
+      console.warn(`Token ${token} not found in TOKENS`)
+      setBalance(null)
+      return
+    }
+
+    const tokenAddress = tokenData.addresses[chainId]
     if (!tokenAddress) {
+      console.warn(`Token ${token} not available on chain ${chainId}`)
       setBalance(null)
       return
     }
 
     const fetchBalance = async () => {
       try {
+        console.log(`Fetching balance for token ${token} (${tokenAddress}) on chain ${chainId} for address ${address}`)
+        
+        // Validate address format
+        if (!tokenAddress.startsWith('0x') || tokenAddress.length !== 42) {
+          throw new Error(`Invalid token address format: ${tokenAddress}`)
+        }
+        
         const result = await publicClient.readContract({
           address: tokenAddress as `0x${string}`,
           abi: erc20Abi,
@@ -30,7 +45,7 @@ export function useTokenBalance(token: TokenSymbol, chainId: number) {
         })
         setBalance(result)
       } catch (error) {
-        console.error('Failed to fetch balance:', error)
+        console.error(`Failed to fetch balance for ${token} on chain ${chainId}:`, error)
         setBalance(null)
       }
     }
