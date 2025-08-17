@@ -53,19 +53,25 @@ export function useSwapQuote(params: SwapQuoteParams) {
           }
         } else if (!isSameToken && isCrossChain) {
           // Cross-chain with token swap
-          if (params.sourceToken === 'USDC' || params.destToken === 'USDC') {
+          if (params.sourceToken === 'USDC' && params.destToken !== 'USDC') {
+            // USDC to non-USDC uses CCTP V2 Hooks
+            protocolKey = 'CCTP_HOOKS'
+            estimatedTime = '30 seconds'
+          } else if (params.destToken === 'USDC' && params.sourceToken !== 'USDC') {
+            // Non-USDC to USDC also uses CCTP V2 Hooks
             protocolKey = 'CCTP_HOOKS'
             estimatedTime = '30 seconds'
           } else if (params.sourceToken === 'USDT' || params.destToken === 'USDT') {
             protocolKey = 'STARGATE_SWAP'
             estimatedTime = '2-3 minutes'
           } else {
-            protocolKey = 'LZ_COMPOSER'
+            // Non-USDC different tokens use Composed OFT
+            protocolKey = 'COMPOSED_OFT'
             estimatedTime = '2-3 minutes'
           }
         } else if (!isSameToken && !isCrossChain) {
           // Same-chain swap
-          protocolKey = 'CCTP_HOOKS' // Using router for same-chain swaps
+          protocolKey = 'DEX_AGGREGATOR'
           estimatedTime = '15 seconds'
         }
 
@@ -89,11 +95,28 @@ export function useSwapQuote(params: SwapQuoteParams) {
         }
 
         // Format protocol name for display
-        let protocolDisplay = protocolKey.replace('_', ' ')
-        if (protocolKey === 'CCTP') {
-          protocolDisplay = 'CCTP V2'
-        } else if (protocolKey === 'CCTP_HOOKS') {
-          protocolDisplay = 'CCTP V2 Hooks'
+        let protocolDisplay = protocolKey
+        switch (protocolKey) {
+          case 'CCTP':
+            protocolDisplay = 'CCTP V2'
+            break
+          case 'CCTP_HOOKS':
+            protocolDisplay = 'CCTP V2 Hooks'
+            break
+          case 'LAYERZERO_OFT':
+            protocolDisplay = 'LayerZero OFT'
+            break
+          case 'COMPOSED_OFT':
+            protocolDisplay = 'Composed OFT'
+            break
+          case 'STARGATE_SWAP':
+            protocolDisplay = 'Stargate'
+            break
+          case 'DEX_AGGREGATOR':
+            protocolDisplay = 'DEX Aggregator'
+            break
+          default:
+            protocolDisplay = protocolKey.replace('_', ' ')
         }
 
         setQuote({
