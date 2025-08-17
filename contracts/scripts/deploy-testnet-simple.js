@@ -1,5 +1,6 @@
 const hre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
+const { formatEther } = require("ethers");
 const fs = require("fs");
 const path = require("path");
 
@@ -51,7 +52,8 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   
   console.log("👤 Deployer address:", deployer.address);
-  console.log("💰 Deployer balance:", ethers.utils.formatEther(await deployer.getBalance()), "ETH\n");
+  const balance = await ethers.provider.getBalance(deployer.address);
+  console.log("💰 Deployer balance:", formatEther(balance), "ETH\n");
   
   // Track deployed addresses
   const deployedContracts = {};
@@ -61,29 +63,29 @@ async function main() {
     console.log("📦 1. Deploying SwapExecutor...");
     const SwapExecutor = await ethers.getContractFactory("SwapExecutor");
     const swapExecutor = await SwapExecutor.deploy(config.contracts.uniswapV3Router);
-    await swapExecutor.deployed();
-    deployedContracts.swapExecutor = swapExecutor.address;
-    console.log("✅ SwapExecutor deployed to:", swapExecutor.address);
+    await swapExecutor.waitForDeployment();
+    deployedContracts.swapExecutor = await swapExecutor.getAddress();
+    console.log("✅ SwapExecutor deployed to:", deployedContracts.swapExecutor);
     
     // ============ 2. Deploy FeeManager ============
     console.log("\n📦 2. Deploying FeeManager...");
     const FeeManager = await ethers.getContractFactory("FeeManager");
     const feeManager = await FeeManager.deploy(deployer.address);
-    await feeManager.deployed();
-    deployedContracts.feeManager = feeManager.address;
-    console.log("✅ FeeManager deployed to:", feeManager.address);
+    await feeManager.waitForDeployment();
+    deployedContracts.feeManager = await feeManager.getAddress();
+    console.log("✅ FeeManager deployed to:", deployedContracts.feeManager);
     
     // ============ 3. Deploy CCTPHookReceiver ============
     console.log("\n📦 3. Deploying CCTPHookReceiver...");
     const CCTPHookReceiver = await ethers.getContractFactory("CCTPHookReceiver");
     const hookReceiver = await CCTPHookReceiver.deploy(
-      swapExecutor.address,
+      deployedContracts.swapExecutor,
       config.contracts.cctpMessageTransmitter,
       config.contracts.usdc
     );
-    await hookReceiver.deployed();
-    deployedContracts.hookReceiver = hookReceiver.address;
-    console.log("✅ CCTPHookReceiver deployed to:", hookReceiver.address);
+    await hookReceiver.waitForDeployment();
+    deployedContracts.hookReceiver = await hookReceiver.getAddress();
+    console.log("✅ CCTPHookReceiver deployed to:", deployedContracts.hookReceiver);
     
     // ============ 4. Deploy RouteProcessor (UUPS Proxy) ============
     console.log("\n📦 4. Deploying RouteProcessor (UUPS Proxy)...");
@@ -102,9 +104,9 @@ async function main() {
         initializer: 'initialize'
       }
     );
-    await routeProcessor.deployed();
-    deployedContracts.routeProcessor = routeProcessor.address;
-    console.log("✅ RouteProcessor deployed to:", routeProcessor.address);
+    await routeProcessor.waitForDeployment();
+    deployedContracts.routeProcessor = await routeProcessor.getAddress();
+    console.log("✅ RouteProcessor deployed to:", deployedContracts.routeProcessor);
     
     // ============ 5. Deploy StableRouter (UUPS Proxy) ============
     console.log("\n📦 5. Deploying StableRouter (UUPS Proxy)...");
@@ -112,31 +114,31 @@ async function main() {
     const stableRouter = await upgrades.deployProxy(
       StableRouter,
       [
-        routeProcessor.address,
-        swapExecutor.address,
-        feeManager.address
+        deployedContracts.routeProcessor,
+        deployedContracts.swapExecutor,
+        deployedContracts.feeManager
       ],
       { 
         kind: 'uups',
         initializer: 'initialize'
       }
     );
-    await stableRouter.deployed();
-    deployedContracts.stableRouter = stableRouter.address;
-    console.log("✅ StableRouter deployed to:", stableRouter.address);
+    await stableRouter.waitForDeployment();
+    deployedContracts.stableRouter = await stableRouter.getAddress();
+    console.log("✅ StableRouter deployed to:", deployedContracts.stableRouter);
     
     // ============ 6. Configure Access Controls ============
     console.log("\n⚙️  6. Configuring Access Controls...");
     
     // Authorize StableRouter to record fees
-    const tx1 = await feeManager.authorizeCollector(stableRouter.address, true);
+    const tx1 = await feeManager.authorizeCollector(deployedContracts.stableRouter, true);
     await tx1.wait();
     console.log("✅ Authorized StableRouter as fee collector");
     
     // Configure CCTPHookReceiver authorized senders
     const tx2 = await hookReceiver.setAuthorizedSender(
       config.cctpDomain,
-      ethers.utils.hexZeroPad(routeProcessor.address, 32),
+      ethers.zeroPadValue(deployedContracts.routeProcessor, 32),
       true
     );
     await tx2.wait();
@@ -147,7 +149,7 @@ async function main() {
     const tx3 = await routeProcessor.configureToken(
       config.contracts.usdc,
       true,  // isUSDC
-      ethers.constants.AddressZero,
+      ethers.ZeroAddress,
       0
     );
     await tx3.wait();

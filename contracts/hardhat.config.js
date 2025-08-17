@@ -19,19 +19,22 @@ module.exports = {
     },
     // Testnets
     sepolia: {
-      url: process.env.SEPOLIA_RPC || "https://rpc.sepolia.org",
+      url: process.env.SEPOLIA_RPC || "https://rpc.ankr.com/eth_sepolia",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
+      timeout: 60000,
     },
     arbitrumSepolia: {
       url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 421614,
+      timeout: 60000,
     },
     baseSepolia: {
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 84532,
+      timeout: 60000,
     },
     avalancheFuji: {
       url: process.env.FUJI_RPC || "https://api.avax-test.network/ext/bc/C/rpc",
