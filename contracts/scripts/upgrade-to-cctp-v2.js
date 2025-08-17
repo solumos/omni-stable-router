@@ -1,158 +1,167 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  console.log("⚡ UPGRADING TO CCTP V2 FAST TRANSFERS");
-  console.log("====================================\n");
+  console.log("🚀 UPGRADING TO CCTP V2 FAST TRANSFERS");
+  console.log("======================================\n");
   
   const network = await ethers.provider.getNetwork();
   const chainId = Number(network.chainId);
   
-  if (chainId !== 8453) {
-    throw new Error("Run this on Base mainnet (8453)");
-  }
-  
-  const [signer] = await ethers.getSigners();
-  
-  // CCTP addresses
-  const addresses = {
-    v1: {
-      tokenMessenger: "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962"
+  // CCTP V2 Addresses
+  const CCTP_V2 = {
+    8453: { // Base
+      tokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      messageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+      domain: 6
     },
-    v2: {
-      tokenMessengerV2: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
-      messageTransmitterV2: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64"
+    42161: { // Arbitrum
+      tokenMessenger: "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
+      messageTransmitter: "0x81D40F21F12A8F0E3252Bccb954D722d4c464B64",
+      domain: 3
     }
   };
   
-  const routerAddress = "0xD1e60637cA70C786B857452E50DE8353a01DabBb";
+  const USDC_ADDRESSES = {
+    8453: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base
+    42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" // Arbitrum
+  };
   
-  console.log(`👤 Signer: ${signer.address}`);
-  console.log(`🌉 Router: ${routerAddress}`);
-  console.log(`🔵 Current CCTP v1: ${addresses.v1.tokenMessenger}`);
-  console.log(`⚡ Upgrading to v2: ${addresses.v2.tokenMessengerV2}\n`);
+  const ROUTER_ADDRESSES = {
+    8453: "0xD1e60637cA70C786B857452E50DE8353a01DabBb", // Base
+    42161: "0xD1e60637cA70C786B857452E50DE8353a01DabBb" // Arbitrum - same address as Base
+  };
   
-  // Get router contract
-  const router = await ethers.getContractAt("UnifiedRouter", routerAddress);
-  
-  // Check ownership
-  const owner = await router.owner();
-  console.log(`👤 Router Owner: ${owner}`);
-  console.log(`✅ Is Owner: ${owner.toLowerCase() === signer.address.toLowerCase()}\n`);
-  
-  if (owner.toLowerCase() !== signer.address.toLowerCase()) {
-    throw new Error("Not the router owner - cannot upgrade");
-  }
-  
-  // Check current CCTP configuration
-  const currentCctpContract = await router.protocolContracts(1); // CCTP
-  console.log(`📊 Current CCTP: ${currentCctpContract}`);
-  console.log(`   Using v1: ${currentCctpContract === addresses.v1.tokenMessenger}`);
-  console.log(`   Using v2: ${currentCctpContract === addresses.v2.tokenMessengerV2}`);
-  
-  if (currentCctpContract === addresses.v2.tokenMessengerV2) {
-    console.log("✅ Already using CCTP v2!");
+  if (!CCTP_V2[chainId]) {
+    console.log("❌ Network not supported");
     return;
   }
   
-  // Verify CCTP v2 contract exists
-  console.log("\n🔍 Verifying CCTP v2 Contract...");
-  const code = await ethers.provider.getCode(addresses.v2.tokenMessengerV2);
+  const chainName = chainId === 8453 ? "Base" : "Arbitrum";
+  const otherChainId = chainId === 8453 ? 42161 : 8453;
+  const otherChainName = chainId === 8453 ? "Arbitrum" : "Base";
   
-  if (code === "0x") {
-    throw new Error("CCTP v2 contract not found on Base");
+  console.log("📍 Upgrading on " + chainName + " (Chain " + chainId + ")");
+  console.log("🎯 Target: " + otherChainName + " (Chain " + otherChainId + ")\n");
+  
+  const [signer] = await ethers.getSigners();
+  console.log("👤 Signer: " + signer.address + "\n");
+  
+  const routerAddress = ROUTER_ADDRESSES[chainId];
+  const router = await ethers.getContractAt("UnifiedRouter", routerAddress);
+  
+  // Check current owner
+  const owner = await router.owner();
+  console.log("📊 Router Owner: " + owner);
+  
+  if (owner.toLowerCase() !== signer.address.toLowerCase()) {
+    console.log("❌ You are not the owner. Only " + owner + " can update routes.");
+    return;
   }
   
-  console.log("✅ CCTP v2 contract verified");
-  console.log(`   Code length: ${code.length - 2} bytes`);
+  console.log("✅ Owner verified\n");
   
-  // Test CCTP v2 interface
-  console.log("\n🧪 Testing CCTP v2 Interface...");
-  try {
-    const tokenMessengerV2ABI = [
-      "function localDomain() view returns (uint32)",
-      "function depositForBurn(uint256,uint32,bytes32,address) external returns (uint64)",
-      "function depositForBurnWithCaller(uint256,uint32,bytes32,address,bytes32) external returns (uint64)"
-    ];
-    
-    const tokenMessengerV2 = new ethers.Contract(
-      addresses.v2.tokenMessengerV2,
-      tokenMessengerV2ABI,
-      ethers.provider
-    );
-    
-    const domain = await tokenMessengerV2.localDomain();
-    console.log(`✅ CCTP v2 Domain: ${domain} (6=Base)`);
-    
-    if (domain !== 6) {
-      throw new Error(`Wrong domain: expected 6 (Base), got ${domain}`);
-    }
-    
-  } catch (e) {
-    console.log("❌ CCTP v2 interface test failed:", e.message);
-    throw e;
-  }
+  // Configure CCTP V2 route
+  console.log("⚙️  CONFIGURING CCTP V2 ROUTE");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   
-  // Upgrade router to use CCTP v2
-  console.log("\n⚡ Upgrading Router to CCTP v2...");
+  const route = {
+    protocol: 1, // Protocol.CCTP
+    protocolDomain: CCTP_V2[otherChainId].domain,
+    bridgeContract: CCTP_V2[chainId].tokenMessenger, // V2 TokenMessenger
+    poolId: 0,
+    swapPool: ethers.ZeroAddress,
+    extraData: "0x"
+  };
+  
+  console.log("\n📋 New CCTP V2 Route Configuration:");
+  console.log("   From Token: USDC (" + USDC_ADDRESSES[chainId] + ")");
+  console.log("   From Chain: " + chainName + " (" + chainId + ")");
+  console.log("   To Token: USDC (" + USDC_ADDRESSES[otherChainId] + ")");
+  console.log("   To Chain: " + otherChainName + " (" + otherChainId + ")");
+  console.log("   Protocol: CCTP (1)");
+  console.log("   Domain: " + route.protocolDomain);
+  console.log("   Bridge: " + route.bridgeContract + " (V2 TokenMessenger)");
+  
+  console.log("\n🔄 Updating route configuration...");
   
   try {
-    const upgradeTx = await router.setProtocolContract(
-      1, // Protocol.CCTP
-      addresses.v2.tokenMessengerV2
+    const tx = await router.configureRoute(
+      USDC_ADDRESSES[chainId],
+      chainId,
+      USDC_ADDRESSES[otherChainId],
+      otherChainId,
+      route
     );
     
-    console.log(`📋 Upgrade TX: ${upgradeTx.hash}`);
+    console.log("\n📤 Transaction sent: " + tx.hash);
     console.log("⏳ Waiting for confirmation...");
     
-    const receipt = await upgradeTx.wait();
-    console.log(`✅ Upgrade confirmed! Block: ${receipt.blockNumber}`);
+    const receipt = await tx.wait();
+    console.log("✅ Transaction confirmed in block " + receipt.blockNumber);
     
-  } catch (e) {
-    console.log("❌ Upgrade failed:", e.message);
-    throw e;
+    // Also update the protocol contract mapping for CCTP_HOOKS if needed
+    console.log("\n⚙️  UPDATING PROTOCOL CONTRACTS");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    
+    console.log("🔄 Setting MessageTransmitter for CCTP_HOOKS...");
+    const tx2 = await router.setProtocolContract(
+      2, // Protocol.CCTP_HOOKS
+      CCTP_V2[chainId].messageTransmitter
+    );
+    
+    console.log("📤 Transaction sent: " + tx2.hash);
+    const receipt2 = await tx2.wait();
+    console.log("✅ MessageTransmitter updated in block " + receipt2.blockNumber);
+    
+  } catch (error) {
+    console.log("\n❌ Failed to update route:", error.message);
+    return;
   }
   
-  // Verify upgrade
-  console.log("\n🔍 Verifying Upgrade...");
-  const newCctpContract = await router.protocolContracts(1);
-  console.log(`📊 New CCTP Address: ${newCctpContract}`);
-  console.log(`✅ Upgrade Success: ${newCctpContract === addresses.v2.tokenMessengerV2}`);
+  // Verify the update
+  console.log("\n\n🔍 VERIFYING UPGRADE");
+  console.log("━━━━━━━━━━━━━━━━━━━");
   
-  if (newCctpContract === addresses.v2.tokenMessengerV2) {
-    console.log("\n" + "=".repeat(50));
-    console.log("🎉 CCTP V2 UPGRADE COMPLETE!");
-    console.log("=".repeat(50));
-    console.log("✅ Router now using CCTP v2");
-    console.log("⚡ Fast transfers enabled");
-    console.log("🚀 Transfer speed: 8-20 seconds (vs 10-20 minutes)");
+  const routeKey = await router.getRouteKey(
+    USDC_ADDRESSES[chainId],
+    chainId,
+    USDC_ADDRESSES[otherChainId],
+    otherChainId
+  );
+  
+  const updatedRoute = await router.routes(routeKey);
+  
+  console.log("\n📊 Updated Route Configuration:");
+  console.log("   Protocol: " + updatedRoute.protocol);
+  console.log("   Domain: " + updatedRoute.protocolDomain);
+  console.log("   Bridge: " + updatedRoute.bridgeContract);
+  
+  if (updatedRoute.bridgeContract === CCTP_V2[chainId].tokenMessenger) {
+    console.log("\n✅ CCTP V2 UPGRADE SUCCESSFUL!");
+    console.log("\n🎉 BENEFITS ENABLED:");
+    console.log("   ⚡ Fast transfers: 8-20 seconds (vs 10-20 minutes)");
+    console.log("   🔄 Automated attestation via relayer");
+    console.log("   💰 Lower opportunity cost for users");
+    console.log("   🚀 Better user experience");
     
-    console.log("\n📊 Speed Improvement:");
-    console.log("• Old (v1): 10-20 minutes");
-    console.log("• New (v2): 8-20 seconds");
-    console.log("• Improvement: 30-150x faster!");
+    console.log("\n📝 NEXT STEPS:");
+    console.log("   1. Test with a small USDC transfer");
+    console.log("   2. Monitor with relayer for fast completion");
+    console.log("   3. Update the other chain's router similarly");
     
-    console.log("\n💡 What Changed:");
-    console.log("• Router now points to CCTP v2 contract");
-    console.log("• Future transfers will use fast attestation");
-    console.log("• Same transfer() function, faster execution");
-    console.log("• All existing routes continue to work");
-    
-    console.log("\n🧪 Next Steps:");
-    console.log("1. Test a new transfer to verify fast speed");
-    console.log("2. Monitor transfer completion times");
-    console.log("3. Update frontend with speed expectations");
-    
-    console.log(`\n🔗 View Router: https://basescan.org/address/${routerAddress}`);
-    console.log(`⚡ CCTP v2: https://basescan.org/address/${addresses.v2.tokenMessengerV2}`);
+    console.log("\n🧪 TEST COMMAND:");
+    const networkCmd = chainName.toLowerCase();
+    console.log("   npx hardhat run scripts/execute-cctp-transfer.js --network " + networkCmd);
     
   } else {
-    throw new Error("Upgrade verification failed");
+    console.log("\n⚠️  Route update may not have completed properly");
+    console.log("   Please verify manually");
   }
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("\n❌ Error:", error);
     process.exit(1);
   });
