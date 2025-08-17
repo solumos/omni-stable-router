@@ -29,13 +29,15 @@ export function TokenSelector({ value, onChange, tokens }: TokenSelectorProps) {
       <SelectTrigger className="w-[120px] h-12 border-0 bg-white hover:bg-gray-50">
         <SelectValue>
           <div className="flex items-center gap-2">
-            <Image
-              src={token.logo || '/logos/usd-coin-usdc-logo.svg'}
-              alt={token.name}
-              width={24}
-              height={24}
-              className="rounded-full"
-            />
+            <div className="w-5 h-5 flex-shrink-0">
+              <Image
+                src={token.logo || '/logos/usd-coin-usdc-logo.svg'}
+                alt={token.name}
+                width={20}
+                height={20}
+                className="rounded-full w-full h-full object-contain"
+              />
+            </div>
             <span className="font-semibold">{value}</span>
           </div>
         </SelectValue>
@@ -48,13 +50,15 @@ export function TokenSelector({ value, onChange, tokens }: TokenSelectorProps) {
           return (
             <SelectItem key={tokenSymbol} value={tokenSymbol}>
               <div className="flex items-center gap-2">
-                <Image
-                  src={tokenData.logo || '/logos/usd-coin-usdc-logo.svg'}
-                  alt={tokenData.name}
-                  width={20}
-                  height={20}
-                  className="rounded-full"
-                />
+                <div className="w-5 h-5 flex-shrink-0">
+                  <Image
+                    src={tokenData.logo || '/logos/usd-coin-usdc-logo.svg'}
+                    alt={tokenData.name}
+                    width={20}
+                    height={20}
+                    className="rounded-full w-full h-full object-contain"
+                  />
+                </div>
                 <span className="font-semibold">{tokenSymbol}</span>
               </div>
             </SelectItem>

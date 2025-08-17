@@ -23,13 +23,15 @@ export function ChainSelector({ value, onChange }: ChainSelectorProps) {
       <SelectTrigger className="w-[120px] h-12 border-0 bg-white hover:bg-gray-50">
         <SelectValue>
           <div className="flex items-center gap-2">
-            <Image
-              src={selectedChain?.logo || '/logos/ethereum-eth-logo.svg'}
-              alt={selectedChain?.short || ''}
-              width={24}
-              height={24}
-              className="rounded-full"
-            />
+            <div className="w-5 h-5 flex-shrink-0">
+              <Image
+                src={selectedChain?.logo || '/logos/ethereum-eth-logo.svg'}
+                alt={selectedChain?.short || ''}
+                width={20}
+                height={20}
+                className="rounded-full w-full h-full object-contain"
+              />
+            </div>
             <span className="font-semibold">{selectedChain?.short}</span>
           </div>
         </SelectValue>
@@ -38,13 +40,15 @@ export function ChainSelector({ value, onChange }: ChainSelectorProps) {
         {Object.values(CHAINS).map((chain) => (
           <SelectItem key={chain.id} value={chain.id.toString()}>
             <div className="flex items-center gap-2">
-              <Image
-                src={chain.logo}
-                alt={chain.short}
-                width={20}
-                height={20}
-                className="rounded-full"
-              />
+              <div className="w-5 h-5 flex-shrink-0">
+                <Image
+                  src={chain.logo}
+                  alt={chain.short}
+                  width={20}
+                  height={20}
+                  className="rounded-full w-full h-full object-contain"
+                />
+              </div>
               <span className="font-semibold">{chain.short}</span>
             </div>
           </SelectItem>
