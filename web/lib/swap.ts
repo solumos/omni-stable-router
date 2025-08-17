@@ -33,12 +33,18 @@ export async function executeSwap(params: SwapParams) {
   ] as Address
 
   // Step 1: Approve token spending
+  // Get current gas prices to avoid fee errors
+  const gasPrice = await publicClient.getGasPrice()
+  
   const approvalTx = await walletClient.writeContract({
     chain: null,
     address: sourceTokenAddress,
     abi: erc20Abi,
     functionName: 'approve',
     args: [routerAddress, params.amount],
+    // Use legacy gas pricing for Base to avoid EIP-1559 issues
+    gasPrice: gasPrice,
+    type: 'legacy' as any,
   })
 
   await waitForTransactionReceipt(config, {
@@ -76,6 +82,9 @@ export async function executeSwap(params: SwapParams) {
       ],
       value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
       chain: null,
+      // Use legacy gas pricing for Base to avoid EIP-1559 issues
+      gasPrice: gasPrice,
+      type: 'legacy' as any,
     })
   } else {
     // Cross-chain with swap or same-chain swap - use transferWithSwap
@@ -98,6 +107,9 @@ export async function executeSwap(params: SwapParams) {
       ],
       value: BigInt(0), // UnifiedRouter transfers don't require ETH payment
       chain: null,
+      // Use legacy gas pricing for Base to avoid EIP-1559 issues
+      gasPrice: gasPrice,
+      type: 'legacy' as any,
     })
   }
 
